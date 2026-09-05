@@ -62,6 +62,39 @@ function initNote(noteData) {
     });
   }
 
+  // Resizing
+  const resizer = document.querySelector(".resize-handle");
+  if (resizer) {
+    let isResizing = false;
+    let startX = 0;
+    let startY = 0;
+
+    resizer.addEventListener("mousedown", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      isResizing = true;
+      startX = e.screenX;
+      startY = e.screenY;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isResizing) return;
+      const dw = e.screenX - startX;
+      const dh = e.screenY - startY;
+      if (dw !== 0 || dh !== 0) {
+        startX = e.screenX;
+        startY = e.screenY;
+        sendAction("resize_move", { id: currentNote.id, dw, dh });
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (isResizing) {
+        isResizing = false;
+      }
+    });
+  }
+
   // Context Menu
   window.addEventListener("contextmenu", (e) => {
     e.preventDefault();

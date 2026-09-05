@@ -16,6 +16,7 @@ import (
 type WebActionHandler func(panelID string, action string, rawPayload json.RawMessage)
 type SimpleHandler func()
 type PanelMovedHandler func(panelID string, x, y float64)
+type PanelResizedHandler func(panelID string, w, h float64)
 
 var (
 	handlerMu     sync.RWMutex
@@ -25,6 +26,7 @@ var (
 	openMenuH     SimpleHandler
 	appReopenH    SimpleHandler
 	panelMovedH   PanelMovedHandler
+	panelResizedH PanelResizedHandler
 )
 
 func SetWebActionHandler(h WebActionHandler) {
@@ -37,6 +39,12 @@ func SetPanelMovedHandler(h PanelMovedHandler) {
 	handlerMu.Lock()
 	defer handlerMu.Unlock()
 	panelMovedH = h
+}
+
+func SetPanelResizedHandler(h PanelResizedHandler) {
+	handlerMu.Lock()
+	defer handlerMu.Unlock()
+	panelResizedH = h
 }
 
 func SetTrayHandlers(onNew, onToggle, onMenu, onReopen SimpleHandler) {
@@ -120,6 +128,17 @@ func onPanelMoved(panelID *C.char, x C.double, y C.double) {
 	handlerMu.RUnlock()
 	if h != nil {
 		h(pID, float64(x), float64(y))
+	}
+}
+
+//export onPanelResized
+func onPanelResized(panelID *C.char, w C.double, h C.double) {
+	pID := C.GoString(panelID)
+	handlerMu.RLock()
+	cb := panelResizedH
+	handlerMu.RUnlock()
+	if cb != nil {
+		cb(pID, float64(w), float64(h))
 	}
 }
 
@@ -213,6 +232,10 @@ func StartDrag(panelPtr unsafe.Pointer) {
 
 func MovePanel(panelPtr unsafe.Pointer, dx, dy float64) {
 	C.macosMovePanel(panelPtr, C.double(dx), C.double(dy))
+}
+
+func ResizePanel(panelPtr unsafe.Pointer, dw, dh float64) {
+	C.macosResizePanel(panelPtr, C.double(dw), C.double(dh))
 }
 
 func SetupTray(title string) {

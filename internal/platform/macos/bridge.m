@@ -11,12 +11,14 @@ extern void onTrayOpenMenu(void);
 extern void onAppReopen(void);
 extern void onHotKeyTriggered(int hotkeyId);
 extern void onPanelMoved(char* panelId, double x, double y);
+extern void onPanelResized(char* panelId, double w, double h);
 
 // Custom NSPanel that allows key/focus input while borderless
 @interface PostItPanel : NSPanel
 @property (nonatomic, strong) NSString *panelId;
 @property (nonatomic, strong) WKWebView *webView;
 - (void)onWindowMoved:(NSNotification *)note;
+- (void)onWindowResized:(NSNotification *)note;
 @end
 
 @implementation PostItPanel
@@ -37,6 +39,10 @@ extern void onPanelMoved(char* panelId, double x, double y);
     double x = frame.origin.x;
     double y = sHeight - frame.origin.y - frame.size.height;
     onPanelMoved((char *)[self.panelId UTF8String], x, y);
+}
+- (void)onWindowResized:(NSNotification *)note {
+    NSRect frame = [self frame];
+    onPanelResized((char *)[self.panelId UTF8String], frame.size.width, frame.size.height);
 }
 @end
 
@@ -161,6 +167,11 @@ void* macosCreatePanel(const char* panelId, double x, double y, double w, double
                                                      name:NSWindowDidMoveNotification
                                                    object:panel];
 
+        [[NSNotificationCenter defaultCenter] addObserver:panel
+                                                 selector:@selector(onWindowResized:)
+                                                     name:NSWindowDidResizeNotification
+                                                   object:panel];
+
         [panel makeKeyAndOrderFront:nil];
     };
 
@@ -269,6 +280,30 @@ void macosMovePanel(void* panelPtr, double dx, double dy) {
         frame.origin.x += dx;
         frame.origin.y -= dy; // In Cocoa screen coordinates, Y is inverted relative to web
         [panel setFrameOrigin:frame.origin];
+    });
+}
+
+void macosResizePanel(void* panelPtr, double dw, double dh) {
+    if (!panelPtr) return;
+    PostItPanel *panel = (__bridge PostItPanel*)panelPtr;
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSRect frame = [panel frame];
+        CGFloat minW = 200.0;
+        CGFloat minH = 180.0;
+
+        CGFloat newW = frame.size.width + dw;
+        if (newW < minW) newW = minW;
+
+        CGFloat newH = frame.size.height + dh;
+        if (newH < minH) newH = minH;
+
+        CGFloat actualDh = newH - frame.size.height;
+        frame.origin.y -= actualDh;
+        frame.size.width = newW;
+        frame.size.height = newH;
+
+        [panel setFrame:frame display:YES];
     });
 }
 

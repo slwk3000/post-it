@@ -87,6 +87,7 @@ func (a *App) Start() error {
 	// Setup handlers
 	macos.SetWebActionHandler(a.handleWebAction)
 	macos.SetPanelMovedHandler(a.onNoteMoved)
+	macos.SetPanelResizedHandler(a.onNoteResized)
 	macos.SetTrayHandlers(
 		func() { a.CreateNewNote() },
 		func() { a.ToggleAllNotes() },
@@ -181,6 +182,18 @@ func (a *App) onNoteMoved(id string, x, y float64) {
 	a.store.SaveNotes(allNotes)
 }
 
+func (a *App) onNoteResized(id string, w, h float64) {
+	a.mu.Lock()
+	if note, ok := a.notes[id]; ok {
+		note.Width = w
+		note.Height = h
+		note.UpdatedAt = time.Now()
+	}
+	allNotes := a.getAllNotesSliceLocked()
+	a.mu.Unlock()
+	a.store.SaveNotes(allNotes)
+}
+
 func (a *App) handleWebAction(panelID string, action string, payload json.RawMessage) {
 	switch action {
 	case "save_content":
@@ -215,6 +228,16 @@ func (a *App) handleWebAction(panelID string, action string, payload json.RawMes
 		}
 		if err := json.Unmarshal(payload, &p); err == nil {
 			a.wm.MovePanel(p.ID, p.Dx, p.Dy)
+		}
+
+	case "resize_move":
+		var p struct {
+			ID string  `json:"id"`
+			Dw float64 `json:"dw"`
+			Dh float64 `json:"dh"`
+		}
+		if err := json.Unmarshal(payload, &p); err == nil {
+			a.wm.ResizePanel(p.ID, p.Dw, p.Dh)
 		}
 
 	case "drag_end":

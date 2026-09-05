@@ -172,6 +172,16 @@ func (wm *WindowManager) MovePanel(noteID string, dx, dy float64) {
 	}
 }
 
+func (wm *WindowManager) ResizePanel(noteID string, dw, dh float64) {
+	wm.mu.RLock()
+	ptr, exists := wm.notePanels[noteID]
+	wm.mu.RUnlock()
+
+	if exists {
+		ResizePanel(ptr, dw, dh)
+	}
+}
+
 func (wm *WindowManager) GetPanelFrame(noteID string) (float64, float64, float64, float64, bool) {
 	wm.mu.RLock()
 	ptr, exists := wm.notePanels[noteID]

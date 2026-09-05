@@ -21,6 +21,7 @@ void macosClosePanel(void* panelPtr);
 
 void macosStartDrag(void* panelPtr);
 void macosMovePanel(void* panelPtr, double dx, double dy);
+void macosResizePanel(void* panelPtr, double dw, double dh);
 
 void macosSetupTray(const char* title);
 void macosGetMousePos(double* x, double* y);
