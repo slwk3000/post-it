@@ -28,38 +28,12 @@ function initNote(noteData) {
     });
   }
 
-  // Header Dragging
+  // Header Dragging (Native macOS Cocoa Window Drag)
   const header = document.getElementById("drag-header");
   if (header) {
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-
     header.addEventListener("mousedown", (e) => {
-      // Don't drag if clicking buttons
       if (e.target.closest("button")) return;
-      isDragging = true;
-      startX = e.screenX;
-      startY = e.screenY;
       sendAction("drag_start", { id: currentNote.id });
-    });
-
-    window.addEventListener("mousemove", (e) => {
-      if (!isDragging) return;
-      const dx = e.screenX - startX;
-      const dy = e.screenY - startY;
-      if (dx !== 0 || dy !== 0) {
-        startX = e.screenX;
-        startY = e.screenY;
-        sendAction("drag_move", { id: currentNote.id, dx, dy });
-      }
-    });
-
-    window.addEventListener("mouseup", () => {
-      if (isDragging) {
-        isDragging = false;
-        sendAction("drag_end", { id: currentNote.id });
-      }
     });
   }
 

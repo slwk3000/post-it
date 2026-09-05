@@ -86,6 +86,7 @@ func (a *App) Start() error {
 
 	// Setup handlers
 	macos.SetWebActionHandler(a.handleWebAction)
+	macos.SetPanelMovedHandler(a.onNoteMoved)
 	macos.SetTrayHandlers(
 		func() { a.CreateNewNote() },
 		func() { a.ToggleAllNotes() },
@@ -166,6 +167,18 @@ func (a *App) OnAppReopen() {
 	} else {
 		a.OpenMenu()
 	}
+}
+
+func (a *App) onNoteMoved(id string, x, y float64) {
+	a.mu.Lock()
+	if note, ok := a.notes[id]; ok {
+		note.X = x
+		note.Y = y
+		note.UpdatedAt = time.Now()
+	}
+	allNotes := a.getAllNotesSliceLocked()
+	a.mu.Unlock()
+	a.store.SaveNotes(allNotes)
 }
 
 func (a *App) handleWebAction(panelID string, action string, payload json.RawMessage) {

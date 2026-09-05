@@ -15,6 +15,7 @@ import (
 
 type WebActionHandler func(panelID string, action string, rawPayload json.RawMessage)
 type SimpleHandler func()
+type PanelMovedHandler func(panelID string, x, y float64)
 
 var (
 	handlerMu     sync.RWMutex
@@ -23,12 +24,19 @@ var (
 	toggleNotesH  SimpleHandler
 	openMenuH     SimpleHandler
 	appReopenH    SimpleHandler
+	panelMovedH   PanelMovedHandler
 )
 
 func SetWebActionHandler(h WebActionHandler) {
 	handlerMu.Lock()
 	defer handlerMu.Unlock()
 	actionHandler = h
+}
+
+func SetPanelMovedHandler(h PanelMovedHandler) {
+	handlerMu.Lock()
+	defer handlerMu.Unlock()
+	panelMovedH = h
 }
 
 func SetTrayHandlers(onNew, onToggle, onMenu, onReopen SimpleHandler) {
@@ -101,6 +109,17 @@ func onAppReopen() {
 	handlerMu.RUnlock()
 	if h != nil {
 		h()
+	}
+}
+
+//export onPanelMoved
+func onPanelMoved(panelID *C.char, x C.double, y C.double) {
+	pID := C.GoString(panelID)
+	handlerMu.RLock()
+	h := panelMovedH
+	handlerMu.RUnlock()
+	if h != nil {
+		h(pID, float64(x), float64(y))
 	}
 }
 

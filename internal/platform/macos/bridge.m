@@ -10,11 +10,13 @@ extern void onTrayToggleNotes(void);
 extern void onTrayOpenMenu(void);
 extern void onAppReopen(void);
 extern void onHotKeyTriggered(int hotkeyId);
+extern void onPanelMoved(char* panelId, double x, double y);
 
 // Custom NSPanel that allows key/focus input while borderless
 @interface PostItPanel : NSPanel
 @property (nonatomic, strong) NSString *panelId;
 @property (nonatomic, strong) WKWebView *webView;
+- (void)onWindowMoved:(NSNotification *)note;
 @end
 
 @implementation PostItPanel
@@ -23,6 +25,18 @@ extern void onHotKeyTriggered(int hotkeyId);
 }
 - (BOOL)canBecomeMainWindow {
     return YES;
+}
+- (void)mouseDown:(NSEvent *)event {
+    [NSApp activateIgnoringOtherApps:YES];
+    [super mouseDown:event];
+}
+- (void)onWindowMoved:(NSNotification *)note {
+    NSRect frame = [self frame];
+    NSScreen *screen = [NSScreen mainScreen];
+    CGFloat sHeight = screen ? screen.frame.size.height : 1080.0;
+    double x = frame.origin.x;
+    double y = sHeight - frame.origin.y - frame.size.height;
+    onPanelMoved((char *)[self.panelId UTF8String], x, y);
 }
 @end
 
@@ -141,6 +155,12 @@ void* macosCreatePanel(const char* panelId, double x, double y, double w, double
 
         panel.webView = wv;
         [panel.contentView addSubview:wv];
+
+        [[NSNotificationCenter defaultCenter] addObserver:panel
+                                                 selector:@selector(onWindowMoved:)
+                                                     name:NSWindowDidMoveNotification
+                                                   object:panel];
+
         [panel makeKeyAndOrderFront:nil];
     };
 
@@ -222,6 +242,7 @@ void macosClosePanel(void* panelPtr) {
     PostItPanel *panel = (__bridge_transfer PostItPanel*)panelPtr;
 
     dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSNotificationCenter defaultCenter] removeObserver:panel];
         [panel.webView.configuration.userContentController removeScriptMessageHandlerForName:@"postit"];
         [panel close];
     });
