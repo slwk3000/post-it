@@ -1,4 +1,5 @@
 let currentSettings = null;
+let changeTimeout = null;
 
 function sendAction(action, payload = {}) {
   const msg = JSON.stringify({ action, payload });
@@ -12,60 +13,55 @@ function sendAction(action, payload = {}) {
 function initMenu(settings) {
   currentSettings = settings;
 
-  // Render selections
-  setupChipGroup("paper-types", currentSettings.default_paper_type, (val) => {
+  // Header Dragging
+  const header = document.getElementById("drag-header");
+  if (header) {
+    header.addEventListener("mousedown", (e) => {
+      if (e.target.closest("button")) return;
+      sendAction("drag_start", { id: "menu" });
+    });
+  }
+
+  // Radio Groups
+  bindRadioGroup("paper_type", (val) => {
     currentSettings.default_paper_type = val;
+    currentSettings.menu_paper_type = val;
+    updateConfigPaperVisual(val);
     onSettingsChanged();
   });
 
-  setupChipGroup("paper-patterns", currentSettings.default_paper_pattern, (val) => {
+  bindRadioGroup("paper_pattern", (val) => {
     currentSettings.default_paper_pattern = val;
     onSettingsChanged();
   });
 
-  setupPenColors(currentSettings.default_pen_color, (val) => {
+  bindRadioGroup("pen_color", (val) => {
     currentSettings.default_pen_color = val;
     onSettingsChanged();
   });
 
-  setupChipGroup("text-alignments", currentSettings.default_alignment, (val) => {
+  bindRadioGroup("alignment", (val) => {
     currentSettings.default_alignment = val;
     onSettingsChanged();
   });
 
-  // Color picker & Saturation
-  const colorPicker = document.getElementById("color-picker");
-  if (colorPicker) {
-    colorPicker.value = currentSettings.default_color || "#fcf5e5";
-    colorPicker.addEventListener("input", (e) => {
-      currentSettings.default_color = e.target.value;
-      onSettingsChanged();
-    });
-  }
-
-  const satSlider = document.getElementById("saturation-slider");
-  const satValue = document.getElementById("sat-value");
-  if (satSlider) {
-    satSlider.value = currentSettings.default_saturation || 80;
-    if (satValue) satValue.textContent = `${satSlider.value}%`;
-    satSlider.addEventListener("input", (e) => {
-      currentSettings.default_saturation = parseInt(e.target.value, 10);
-      if (satValue) satValue.textContent = `${currentSettings.default_saturation}%`;
-      onSettingsChanged();
-    });
-  }
-
-  // Shake Toggle
+  // Shake Checkbox
   const shakeToggle = document.getElementById("shake-toggle");
   if (shakeToggle) {
-    shakeToggle.checked = currentSettings.shake_enabled !== false;
     shakeToggle.addEventListener("change", (e) => {
       currentSettings.shake_enabled = e.target.checked;
       onSettingsChanged();
     });
   }
 
-  // Actions
+  // Action Buttons
+  const btnClose = document.getElementById("btn-close-menu");
+  if (btnClose) {
+    btnClose.addEventListener("click", () => {
+      sendAction("close_menu", {});
+    });
+  }
+
   const btnNew = document.getElementById("btn-new-note");
   if (btnNew) {
     btnNew.addEventListener("click", () => {
@@ -80,79 +76,100 @@ function initMenu(settings) {
     });
   }
 
-  const btnClose = document.getElementById("btn-close-menu");
-  if (btnClose) {
-    btnClose.addEventListener("click", () => {
-      sendAction("close_menu", {});
-    });
-  }
-
-  // Attach Drawably
+  // Initialize all Drawably hand-drawn components
   if (window.drawably) {
-    if (window.drawably.drawablyButton) {
-      document.querySelectorAll(".drawably-button").forEach((btn) => {
-        try {
-          window.drawably.drawablyButton(btn, { variant: "outline" });
-        } catch (err) {}
-      });
+    const d = window.drawably;
+
+    // Radios
+    document.querySelectorAll(".radio-wrap").forEach((el) => {
+      try { d.drawablyRadio(el); } catch (err) {}
+    });
+
+    // Checkboxes
+    const wrapShake = document.getElementById("wrap-shake");
+    if (wrapShake) {
+      try { d.drawablyCheckbox(wrapShake); } catch (err) {}
     }
-    if (window.drawably.drawablyCard) {
-      const card = document.getElementById("menu-paper");
-      if (card) {
-        try {
-          window.drawably.drawablyCard(card);
-        } catch (err) {}
-      }
+
+    // Dividers
+    document.querySelectorAll(".drawably-divider").forEach((el) => {
+      try { d.drawablyDivider(el); } catch (err) {}
+    });
+
+    // Titles and text decorations
+    const wordConfigs = document.getElementById("word-configs");
+    if (wordConfigs) {
+      try { d.drawablyCircle(wordConfigs); } catch (err) {}
     }
+
+    const lblPapel = document.getElementById("lbl-papel");
+    if (lblPapel) {
+      try { d.drawablyHighlight(lblPapel); } catch (err) {}
+    }
+
+    const lblPauta = document.getElementById("lbl-pauta");
+    if (lblPauta) {
+      try { d.drawablyUnderline(lblPauta); } catch (err) {}
+    }
+
+    const lblCaneta = document.getElementById("lbl-caneta");
+    if (lblCaneta) {
+      try { d.drawablyHighlight(lblCaneta); } catch (err) {}
+    }
+
+    const lblAlign = document.getElementById("lbl-align");
+    if (lblAlign) {
+      try { d.drawablyUnderline(lblAlign); } catch (err) {}
+    }
+
+    const lblMouse = document.getElementById("lbl-mouse");
+    if (lblMouse) {
+      try { d.drawablyUnderline(lblMouse); } catch (err) {}
+    }
+
+    const lblKeymaps = document.getElementById("lbl-keymaps");
+    if (lblKeymaps) {
+      try { d.drawablyHighlight(lblKeymaps); } catch (err) {}
+    }
+
+    // Shortcuts List
+    const shortcutsList = document.getElementById("shortcuts-list");
+    if (shortcutsList) {
+      try { d.drawablyList(shortcutsList, { marker: "dash" }); } catch (err) {}
+    }
+
+    // Buttons
+    document.querySelectorAll(".drawably-btn").forEach((btn) => {
+      try { d.drawablyButton(btn, { variant: "outline" }); } catch (err) {}
+    });
   }
 }
 
-function setupChipGroup(containerId, activeVal, onSelect) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  const chips = container.querySelectorAll(".paper-chip");
-  chips.forEach((chip) => {
-    if (chip.dataset.val === activeVal) {
-      chip.classList.add("active");
-    } else {
-      chip.classList.remove("active");
-    }
-
-    chip.addEventListener("click", () => {
-      chips.forEach((c) => c.classList.remove("active"));
-      chip.classList.add("active");
-      onSelect(chip.dataset.val);
+function bindRadioGroup(name, onChange) {
+  const radios = document.querySelectorAll(`input[type="radio"][name="${name}"]`);
+  radios.forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        onChange(e.target.value);
+      }
     });
   });
 }
 
-function setupPenColors(activeVal, onSelect) {
-  const container = document.getElementById("pen-colors");
-  if (!container) return;
-
-  const pens = container.querySelectorAll(".pen-chip");
-  pens.forEach((pen) => {
-    if (pen.dataset.val === activeVal) {
-      pen.classList.add("active");
-    } else {
-      pen.classList.remove("active");
-    }
-
-    pen.addEventListener("click", () => {
-      pens.forEach((p) => p.classList.remove("active"));
-      pen.classList.add("active");
-      onSelect(pen.dataset.val);
-    });
-  });
+function updateConfigPaperVisual(paperType) {
+  const card = document.getElementById("config-card");
+  if (!card) return;
+  card.className = "config-postit-card";
+  card.classList.add(`paper-${paperType}`);
+  card.classList.add("pattern-plain");
+  card.classList.add("pen-blue");
 }
 
-let changeTimeout = null;
 function onSettingsChanged() {
   clearTimeout(changeTimeout);
   changeTimeout = setTimeout(() => {
     sendAction("save_settings", currentSettings);
-  }, 150);
+  }, 100);
 }
 
 window.initMenu = initMenu;

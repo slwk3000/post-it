@@ -32,8 +32,10 @@ const (
 type Alignment string
 
 const (
-	AlignCorner  Alignment = "corner"
+	AlignLeft    Alignment = "left"
+	AlignCorner  Alignment = "left" // alias for backwards compatibility
 	AlignCenter  Alignment = "center"
+	AlignRight   Alignment = "right"
 	AlignJustify Alignment = "justify"
 )
 
@@ -71,7 +73,7 @@ func DefaultSettings() *Settings {
 		DefaultPaperType:    PaperPolen,
 		DefaultPaperPattern: PatternDotted,
 		DefaultPenColor:     PenBlue,
-		DefaultAlignment:    AlignCorner,
+		DefaultAlignment:    AlignLeft,
 		DefaultColor:        "#fcf5e5",
 		DefaultSaturation:   80,
 		MenuPaperType:       PaperPolen,

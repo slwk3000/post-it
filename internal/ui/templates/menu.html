@@ -8,114 +8,190 @@
 {{.DrawablyCSS}}
 {{.PaperCSS}}
 
-  /* Custom Menu Enhancements */
   body {
     background: transparent;
-    padding: 10px;
-  }
-  .menu-paper-wrapper {
-    width: 100%;
-    height: 100%;
-    border-radius: 6px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.28);
-    display: flex;
-    flex-direction: column;
+    padding: 0;
+    margin: 0;
     overflow: hidden;
   }
-  .hotkey-badge {
-    display: inline-block;
-    background: rgba(0, 0, 0, 0.08);
-    padding: 2px 6px;
+
+  .config-postit-card {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
     border-radius: 4px;
-    font-size: 16px;
-    font-family: monospace;
-    color: var(--pen-black);
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.22), 0 3px 8px rgba(0, 0, 0, 0.14);
+  }
+
+  .config-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 22px 14px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
   </style>
 </head>
 <body>
-  <div id="menu-paper" class="menu-paper-wrapper paper-{{.Settings.MenuPaperType}} pattern-plain">
-    <div class="menu-container">
-      
-      <!-- Menu Header -->
-      <div class="menu-header">
-        <div class="menu-title">📝 Post-it Configurações</div>
-        <button id="btn-close-menu" class="icon-btn drawably-button" title="Fechar Menu">✖</button>
+  <div id="config-card" class="config-postit-card paper-{{.Settings.MenuPaperType}} pattern-plain pen-blue">
+    
+    <!-- Pin / Header Drag Area -->
+    <div id="drag-header" class="postit-header">
+      <div class="header-drag-zone" title="Arraste para mover">
+        <div class="tape-pin"></div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-close-menu" class="drawably-btn" title="Fechar">x</button>
+      </div>
+    </div>
+
+    <!-- Scrollable content area -->
+    <div class="config-scroll-area">
+      <!-- Title: Configs -->
+      <div class="menu-title-row">
+        <h1 class="configs-title"><span id="word-configs">Configs</span></h1>
       </div>
 
-      <!-- Tipo de Papel -->
-      <div class="menu-section">
-        <div class="menu-section-title">📄 Tipo de Papel:</div>
-        <div id="paper-types" class="options-row">
-          <div class="paper-chip" data-val="polen">Pólen (Pastel)</div>
-          <div class="paper-chip" data-val="sulfite">Sulfite</div>
-          <div class="paper-chip" data-val="couche">Couché</div>
-          <div class="paper-chip" data-val="kraft">Kraft (Bege)</div>
+      <hr class="piece piece-div drawably-divider" id="rule-top" />
+
+      <!-- Papel -->
+      <div class="menu-field">
+        <div class="field-label">
+          <span id="lbl-papel">Papel</span>
+        </div>
+        <div class="options-row">
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-paper-polen"><input type="radio" name="paper_type" value="polen" {{if eq .Settings.DefaultPaperType "polen"}}checked{{end}} /></span>
+            pólen
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-paper-sulfite"><input type="radio" name="paper_type" value="sulfite" {{if eq .Settings.DefaultPaperType "sulfite"}}checked{{end}} /></span>
+            sulfite
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-paper-couche"><input type="radio" name="paper_type" value="couche" {{if eq .Settings.DefaultPaperType "couche"}}checked{{end}} /></span>
+            couché
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-paper-kraft"><input type="radio" name="paper_type" value="kraft" {{if eq .Settings.DefaultPaperType "kraft"}}checked{{end}} /></span>
+            kraft
+          </label>
         </div>
       </div>
 
-      <!-- Pauta do Papel -->
-      <div class="menu-section">
-        <div class="menu-section-title">📐 Pauta da Folha:</div>
-        <div id="paper-patterns" class="options-row">
-          <div class="paper-chip" data-val="dotted">Pontilhado</div>
-          <div class="paper-chip" data-val="grid">Quadriculado</div>
-          <div class="paper-chip" data-val="lines">Linhas</div>
-          <div class="paper-chip" data-val="plain">Liso</div>
+      <hr class="piece piece-div drawably-divider" id="rule-pauta" />
+
+      <!-- Pauta -->
+      <div class="menu-field">
+        <div class="field-label">
+          <span id="lbl-pauta">Pauta</span>
+        </div>
+        <div class="options-row">
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-pat-dotted"><input type="radio" name="paper_pattern" value="dotted" {{if eq .Settings.DefaultPaperPattern "dotted"}}checked{{end}} /></span>
+            pontilhado
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-pat-grid"><input type="radio" name="paper_pattern" value="grid" {{if eq .Settings.DefaultPaperPattern "grid"}}checked{{end}} /></span>
+            quadriculado
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-pat-lines"><input type="radio" name="paper_pattern" value="lines" {{if eq .Settings.DefaultPaperPattern "lines"}}checked{{end}} /></span>
+            linhas
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-pat-plain"><input type="radio" name="paper_pattern" value="plain" {{if eq .Settings.DefaultPaperPattern "plain"}}checked{{end}} /></span>
+            liso
+          </label>
         </div>
       </div>
 
-      <!-- Cor da Caneta -->
-      <div class="menu-section">
-        <div class="menu-section-title">✒️ Cor da Caneta:</div>
-        <div id="pen-colors" class="options-row" style="align-items: center;">
-          <div class="pen-chip" data-val="blue" style="background: var(--pen-blue);" title="Azul"></div>
-          <div class="pen-chip" data-val="black" style="background: var(--pen-black);" title="Preto"></div>
-          <div class="pen-chip" data-val="red" style="background: var(--pen-red);" title="Vermelho"></div>
-          <div class="pen-chip" data-val="white" style="background: var(--pen-white);" title="Branco"></div>
+      <hr class="piece piece-div drawably-divider" id="rule-caneta" />
+
+      <!-- Caneta -->
+      <div class="menu-field">
+        <div class="field-label">
+          <span id="lbl-caneta">Caneta</span>
+        </div>
+        <div class="options-row">
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-pen-blue"><input type="radio" name="pen_color" value="blue" {{if eq .Settings.DefaultPenColor "blue"}}checked{{end}} /></span>
+            azul
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-pen-black"><input type="radio" name="pen_color" value="black" {{if eq .Settings.DefaultPenColor "black"}}checked{{end}} /></span>
+            preta
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-pen-red"><input type="radio" name="pen_color" value="red" {{if eq .Settings.DefaultPenColor "red"}}checked{{end}} /></span>
+            vermelha
+          </label>
         </div>
       </div>
 
-      <!-- Alinhamento da Escrita -->
-      <div class="menu-section">
-        <div class="menu-section-title">✏️ Alinhamento do Texto:</div>
-        <div id="text-alignments" class="options-row">
-          <div class="paper-chip" data-val="corner">Cantos (Início)</div>
-          <div class="paper-chip" data-val="center">Centralizada</div>
-          <div class="paper-chip" data-val="justify">Livre / Justificada</div>
+      <hr class="piece piece-div drawably-divider" id="rule-align" />
+
+      <!-- Alinhamento -->
+      <div class="menu-field">
+        <div class="field-label">
+          <span id="lbl-align">Alinhamento</span>
+        </div>
+        <div class="options-row">
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-align-left"><input type="radio" name="alignment" value="left" {{if or (eq .Settings.DefaultAlignment "left") (eq .Settings.DefaultAlignment "corner")}}checked{{end}} /></span>
+            esquerda
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-align-center"><input type="radio" name="alignment" value="center" {{if eq .Settings.DefaultAlignment "center"}}checked{{end}} /></span>
+            centro
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-align-right"><input type="radio" name="alignment" value="right" {{if eq .Settings.DefaultAlignment "right"}}checked{{end}} /></span>
+            direita
+          </label>
+          <label class="check-label">
+            <span class="radio-wrap" id="wrap-align-justify"><input type="radio" name="alignment" value="justify" {{if eq .Settings.DefaultAlignment "justify"}}checked{{end}} /></span>
+            justificada
+          </label>
         </div>
       </div>
 
-      <!-- Cores e Saturação -->
-      <div class="menu-section">
-        <div class="menu-section-title">🎨 Tinta & Saturação (Sulfite / Couché):</div>
-        <div class="slider-container">
-          <input type="color" id="color-picker" title="Escolher cor" style="width: 40px; height: 32px; border: none; background: transparent; cursor: pointer;">
-          <input type="range" id="saturation-slider" min="10" max="100" value="{{.Settings.DefaultSaturation}}">
-          <span id="sat-value" style="font-size: 20px; min-width: 45px;">{{.Settings.DefaultSaturation}}%</span>
-        </div>
-      </div>
+      <hr class="piece piece-div drawably-divider" id="rule-mouse" />
 
-      <!-- Gesto de Balançar Mouse & Atalhos -->
-      <div class="menu-section">
-        <div class="menu-section-title">👋 Balançar o Mouse:</div>
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 20px; cursor: pointer;">
-          <input type="checkbox" id="shake-toggle" {{if .Settings.ShakeEnabled}}checked{{end}}>
-          <span>Ocultar / Exibir notas ao balançar o mouse rapidamente</span>
+      <!-- Mouse -->
+      <div class="menu-field">
+        <div class="field-label">
+          <span id="lbl-mouse">Mouse</span>
+        </div>
+        <label class="check-label">
+          <span class="check-wrap" id="wrap-shake"><input type="checkbox" id="shake-toggle" {{if .Settings.ShakeEnabled}}checked{{end}} /></span>
+          balançar para ocultar/exibir
         </label>
       </div>
 
-      <!-- Atalhos de Teclado -->
-      <div class="menu-section" style="font-size: 18px; color: rgba(30,30,30,0.75);">
-        <div>💡 <b>Atalhos:</b></div>
-        <div>• <span class="hotkey-badge">Cmd + Shift + N</span> : Criar novo Post-it</div>
-        <div>• <span class="hotkey-badge">Cmd + Shift + P</span> : Ocultar / Exibir Post-its</div>
+      <hr class="piece piece-div drawably-divider" id="rule-keymaps" />
+
+      <!-- Keymaps -->
+      <div class="menu-field">
+        <div class="field-label">
+          <span id="lbl-keymaps">Keymaps</span>
+        </div>
+        <ul class="piece-list" id="shortcuts-list">
+          <li>criar: Cmd+Shift+N</li>
+          <li>apagar: botão x</li>
+          <li>ocultar/exibir: Cmd+Shift+P</li>
+          <li>config: botão cfg</li>
+        </ul>
       </div>
 
-      <!-- Botões de Ação Inferiores -->
+      <!-- Footer Actions -->
       <div class="menu-footer">
-        <button id="btn-toggle-all" class="paper-chip drawably-button" style="font-size: 18px;">👁️ Ocultar/Exibir</button>
-        <button id="btn-new-note" class="paper-chip drawably-button" style="font-size: 18px; font-weight: bold; border-color: var(--pen-blue);">➕ Criar Nota</button>
+        <button id="btn-toggle-all" class="drawably-btn" type="button">Ocultar / Exibir</button>
+        <button id="btn-new-note" class="drawably-btn" type="button">Criar Nota</button>
       </div>
 
     </div>

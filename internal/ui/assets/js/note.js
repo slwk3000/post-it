@@ -101,13 +101,16 @@ function initNote(noteData) {
     sendAction("open_menu", { id: currentNote.id });
   });
 
-  // Attach Drawably effects if available
+  // Attach Drawably effects
   if (window.drawably && window.drawably.drawablyButton) {
-    document.querySelectorAll(".drawably-btn").forEach((btn) => {
-      try {
-        window.drawably.drawablyButton(btn, { variant: "outline" });
-      } catch (err) {}
-    });
+    const btnNew = document.getElementById("btn-new");
+    const btnMenu = document.getElementById("btn-menu");
+    const btnDelete = document.getElementById("btn-delete");
+    try {
+      if (btnNew) window.drawably.drawablyButton(btnNew, { variant: "outline" });
+      if (btnMenu) window.drawably.drawablyButton(btnMenu, { variant: "outline" });
+      if (btnDelete) window.drawably.drawablyButton(btnDelete, { variant: "outline", tone: "danger" });
+    } catch (err) {}
   }
 }
 
@@ -116,23 +119,16 @@ function applyNoteConfig(note) {
   const textarea = document.getElementById("note-text");
   if (!card || !textarea) return;
 
-  // Paper Type
+  // Paper Type & Pattern
   card.className = "postit-card";
   card.classList.add(`paper-${note.paper_type || 'polen'}`);
   card.classList.add(`pattern-${note.paper_pattern || 'dotted'}`);
 
-  // Custom Colors for Sulfite / Couche
-  if (note.color) {
-    card.style.setProperty("--custom-color", note.color);
-  }
-  if (note.saturation !== undefined) {
-    card.style.setProperty("--custom-sat", `${note.saturation}%`);
-  }
-
-  // Pen Color
+  // Pen Color & Alignment
+  const alignClass = note.alignment === "corner" ? "left" : (note.alignment || "left");
   textarea.className = "postit-textarea";
   textarea.classList.add(`pen-${note.pen_color || 'blue'}`);
-  textarea.classList.add(`align-${note.alignment || 'corner'}`);
+  textarea.classList.add(`align-${alignClass}`);
 }
 
 window.updateNoteConfig = function(updatedNote) {

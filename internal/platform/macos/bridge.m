@@ -103,6 +103,21 @@ void macosInitApp(void) {
     // Run as background accessory app (no clutter in Dock by default)
     [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
 
+    // Setup standard Edit menu to enable Cmd+C, Cmd+V, Cmd+X, Cmd+A, Cmd+Z in WKWebView
+    NSMenu *mainMenu = [[NSMenu alloc] init];
+    NSMenuItem *editMenuItem = [[NSMenuItem alloc] init];
+    NSMenu *editMenu = [[NSMenu alloc] initWithTitle:@"Edit"];
+    [editMenu addItemWithTitle:@"Undo" action:@selector(undo:) keyEquivalent:@"z"];
+    [editMenu addItemWithTitle:@"Redo" action:@selector(redo:) keyEquivalent:@"Z"];
+    [editMenu addItem:[NSMenuItem separatorItem]];
+    [editMenu addItemWithTitle:@"Cut" action:@selector(cut:) keyEquivalent:@"x"];
+    [editMenu addItemWithTitle:@"Copy" action:@selector(copy:) keyEquivalent:@"c"];
+    [editMenu addItemWithTitle:@"Paste" action:@selector(paste:) keyEquivalent:@"v"];
+    [editMenu addItemWithTitle:@"Select All" action:@selector(selectAll:) keyEquivalent:@"a"];
+    [editMenuItem setSubmenu:editMenu];
+    [mainMenu addItem:editMenuItem];
+    [NSApp setMainMenu:mainMenu];
+
     gAppDelegate = [[PostItAppDelegate alloc] init];
     [NSApp setDelegate:gAppDelegate];
     gTrayTarget = [[PostItTrayTarget alloc] init];
@@ -316,23 +331,23 @@ void macosSetupTray(const char* title) {
 
         NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Post-it"];
 
-        NSMenuItem *itemNew = [[NSMenuItem alloc] initWithTitle:@"📝 Criar Nova Nota" action:@selector(onNewNote:) keyEquivalent:@"n"];
+        NSMenuItem *itemNew = [[NSMenuItem alloc] initWithTitle:@"Criar Nova Nota" action:@selector(onNewNote:) keyEquivalent:@"n"];
         [itemNew setKeyEquivalentModifierMask:NSEventModifierFlagCommand | NSEventModifierFlagShift];
         [itemNew setTarget:gTrayTarget];
         [menu addItem:itemNew];
 
-        NSMenuItem *itemToggle = [[NSMenuItem alloc] initWithTitle:@"👁️ Ocultar / Exibir Notas" action:@selector(onToggleNotes:) keyEquivalent:@"p"];
+        NSMenuItem *itemToggle = [[NSMenuItem alloc] initWithTitle:@"Ocultar / Exibir Notas" action:@selector(onToggleNotes:) keyEquivalent:@"p"];
         [itemToggle setKeyEquivalentModifierMask:NSEventModifierFlagCommand | NSEventModifierFlagShift];
         [itemToggle setTarget:gTrayTarget];
         [menu addItem:itemToggle];
 
-        NSMenuItem *itemMenu = [[NSMenuItem alloc] initWithTitle:@"⚙️ Configurações / Menu" action:@selector(onOpenMenu:) keyEquivalent:@""];
+        NSMenuItem *itemMenu = [[NSMenuItem alloc] initWithTitle:@"Configurações" action:@selector(onOpenMenu:) keyEquivalent:@""];
         [itemMenu setTarget:gTrayTarget];
         [menu addItem:itemMenu];
 
         [menu addItem:[NSMenuItem separatorItem]];
 
-        NSMenuItem *itemQuit = [[NSMenuItem alloc] initWithTitle:@"❌ Sair" action:@selector(onQuit:) keyEquivalent:@"q"];
+        NSMenuItem *itemQuit = [[NSMenuItem alloc] initWithTitle:@"Sair" action:@selector(onQuit:) keyEquivalent:@"q"];
         [itemQuit setKeyEquivalentModifierMask:NSEventModifierFlagCommand];
         [itemQuit setTarget:gTrayTarget];
         [menu addItem:itemQuit];

@@ -23,6 +23,7 @@ type App struct {
 	shakeDetector *macos.ShakeDetector
 	settings      *model.Settings
 	notes         map[string]*model.Note
+	activeNoteID  string
 }
 
 func New() (*App, error) {
@@ -69,7 +70,7 @@ func (a *App) Start() error {
 	// If no notes exist yet, create initial welcome note
 	if len(existingNotes) == 0 {
 		welcomeNote := model.NewNote(generateID(), a.settings)
-		welcomeNote.Content = "Olá! 👋 Bem-vindo ao Post-it!\n\n• Arraste a nota pelo topo\n• Balance o mouse para esconder/mostrar\n• Cmd+Shift+N para nova nota\n• ⚙️ para abrir o menu de papéis"
+		welcomeNote.Content = "Bem-vindo ao Post-it\n\n- Arraste a nota pelo topo\n- Balance o mouse para ocultar ou exibir\n- Cmd+Shift+N para criar nota\n- Botao cfg para abrir configs\n- Cmd+C, Cmd+V e Cmd+A suportados"
 		welcomeNote.X = 140
 		welcomeNote.Y = 140
 		existingNotes = []*model.Note{welcomeNote}
@@ -154,10 +155,28 @@ func (a *App) ToggleAllNotes() {
 	a.wm.ToggleAllNotes()
 }
 
-func (a *App) OpenMenu() {
-	a.mu.RLock()
+func (a *App) OpenMenu(targetID ...string) {
+	a.mu.Lock()
+	if len(targetID) > 0 && targetID[0] != "" {
+		a.activeNoteID = targetID[0]
+	}
 	st := a.settings
-	a.mu.RUnlock()
+	if a.activeNoteID != "" {
+		if note, ok := a.notes[a.activeNoteID]; ok {
+			st = &model.Settings{
+				DefaultPaperType:    note.PaperType,
+				DefaultPaperPattern: note.PaperPattern,
+				DefaultPenColor:     note.PenColor,
+				DefaultAlignment:    note.Alignment,
+				DefaultColor:        note.Color,
+				DefaultSaturation:   note.Saturation,
+				MenuPaperType:       note.PaperType,
+				ShakeEnabled:        a.settings.ShakeEnabled,
+				ShakeSensitivity:    a.settings.ShakeSensitivity,
+			}
+		}
+	}
+	a.mu.Unlock()
 	a.wm.OpenMenu(st)
 }
 
@@ -269,7 +288,11 @@ func (a *App) handleWebAction(panelID string, action string, payload json.RawMes
 		}
 
 	case "open_menu":
-		a.OpenMenu()
+		var p struct {
+			ID string `json:"id"`
+		}
+		json.Unmarshal(payload, &p)
+		a.OpenMenu(p.ID)
 
 	case "close_menu":
 		a.wm.CloseMenu()
@@ -284,26 +307,32 @@ func (a *App) handleWebAction(panelID string, action string, payload json.RawMes
 		var newSettings model.Settings
 		if err := json.Unmarshal(payload, &newSettings); err == nil {
 			a.mu.Lock()
-			a.settings = &newSettings
+			// Update default settings for future notes
+			a.settings.DefaultPaperType = newSettings.DefaultPaperType
+			a.settings.DefaultPaperPattern = newSettings.DefaultPaperPattern
+			a.settings.DefaultPenColor = newSettings.DefaultPenColor
+			a.settings.DefaultAlignment = newSettings.DefaultAlignment
+			a.settings.MenuPaperType = newSettings.DefaultPaperType
+			a.settings.ShakeEnabled = newSettings.ShakeEnabled
+			a.settings.ShakeSensitivity = newSettings.ShakeSensitivity
 			a.shakeDetector.SetEnabled(newSettings.ShakeEnabled)
 			a.shakeDetector.SetSensitivity(newSettings.ShakeSensitivity)
-			a.mu.Unlock()
 
-			a.store.SaveSettings(&newSettings)
-
-			// Update all currently open notes to reflect default styles if desired
-			a.mu.RLock()
-			for _, note := range a.notes {
-				note.PaperType = newSettings.DefaultPaperType
-				note.PaperPattern = newSettings.DefaultPaperPattern
-				note.PenColor = newSettings.DefaultPenColor
-				note.Alignment = newSettings.DefaultAlignment
-				note.Color = newSettings.DefaultColor
-				note.Saturation = newSettings.DefaultSaturation
-				a.wm.UpdateNoteWindow(note)
+			// Update ONLY the active note (if specified), NOT all notes!
+			if a.activeNoteID != "" {
+				if note, ok := a.notes[a.activeNoteID]; ok {
+					note.PaperType = newSettings.DefaultPaperType
+					note.PaperPattern = newSettings.DefaultPaperPattern
+					note.PenColor = newSettings.DefaultPenColor
+					note.Alignment = newSettings.DefaultAlignment
+					note.UpdatedAt = time.Now()
+					a.wm.UpdateNoteWindow(note)
+				}
 			}
 			allNotes := a.getAllNotesSliceLocked()
-			a.mu.RUnlock()
+			a.mu.Unlock()
+
+			a.store.SaveSettings(a.settings)
 			a.store.SaveNotes(allNotes)
 		}
 	}

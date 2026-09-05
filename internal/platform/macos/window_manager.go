@@ -116,8 +116,8 @@ func (wm *WindowManager) OpenMenu(settings *model.Settings) error {
 		if err != nil {
 			return fmt.Errorf("render menu html: %w", err)
 		}
-		// Center on screen
-		wm.menuPanel = CreatePanel("menu", 200, 150, 420, 600, html, false)
+		// Center on screen, rectangular post-it size
+		wm.menuPanel = CreatePanel("menu", 200, 150, 540, 440, html, false)
 	} else {
 		html, err := ui.RenderMenuHTML(settings)
 		if err == nil {
