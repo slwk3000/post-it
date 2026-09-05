@@ -1,0 +1,333 @@
+@font-face {
+  font-family: 'Caveat';
+  src: url('../fonts/Caveat.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --pen-blue: #1d4ed8;
+  --pen-black: #18181b;
+  --pen-red: #dc2626;
+  --pen-white: #fdfdfd;
+
+  --paper-polen: #faf3de;
+  --paper-sulfite: #ffffff;
+  --paper-couche: #f3f5f8;
+  --paper-kraft: #d8ba8e;
+
+  --pattern-opacity: 0.18;
+  --current-pen-color: var(--pen-blue);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  font-family: 'Caveat', cursive, sans-serif;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* Post-it Note Container */
+.postit-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.22), 0 3px 8px rgba(0, 0, 0, 0.14);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Paper Types */
+.paper-polen {
+  background-color: var(--paper-polen);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(240, 230, 200, 0.2) 100%);
+}
+
+.paper-sulfite {
+  background-color: var(--custom-color, var(--paper-sulfite));
+  filter: saturate(var(--custom-sat, 100%));
+}
+
+.paper-couche {
+  background-color: var(--custom-color, var(--paper-couche));
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.5) 0%, rgba(220, 226, 235, 0.3) 100%);
+  filter: saturate(var(--custom-sat, 100%));
+}
+
+.paper-kraft {
+  background-color: var(--paper-kraft);
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(130, 95, 55, 0.08) 0%, transparent 80%),
+    linear-gradient(135deg, rgba(245, 220, 185, 0.2) 0%, rgba(175, 135, 85, 0.25) 100%);
+}
+
+/* Paper Patterns */
+.pattern-dotted {
+  background-size: 20px 20px;
+  background-repeat: repeat;
+  background-image: radial-gradient(circle, rgba(50, 40, 30, var(--pattern-opacity)) 1.2px, transparent 1.2px);
+}
+
+.pattern-grid {
+  background-size: 20px 20px;
+  background-repeat: repeat;
+  background-image: 
+    linear-gradient(to right, rgba(50, 40, 30, calc(var(--pattern-opacity) * 0.85)) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(50, 40, 30, calc(var(--pattern-opacity) * 0.85)) 1px, transparent 1px);
+}
+
+.pattern-lines {
+  background-size: 100% 28px;
+  background-repeat: repeat-y;
+  background-image: linear-gradient(to bottom, transparent 26px, rgba(50, 40, 30, calc(var(--pattern-opacity) * 1.1)) 27px, transparent 28px);
+}
+
+.pattern-plain {
+  /* Plain clean paper */
+}
+
+/* Washi tape / Pin Drag Bar */
+.postit-header {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  cursor: grab;
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.postit-header:active {
+  cursor: grabbing;
+}
+
+.header-drag-zone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  height: 100%;
+}
+
+.tape-pin {
+  width: 38px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  border-radius: 1px;
+  transform: rotate(-2deg);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  border-radius: 4px;
+  color: rgba(30, 30, 30, 0.65);
+  transition: all 0.12s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.95);
+  transform: scale(1.08);
+}
+
+/* Note Content Area */
+.postit-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 12px 10px 12px;
+  position: relative;
+}
+
+.postit-textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'Caveat', cursive, sans-serif;
+  font-size: 24px;
+  line-height: 28px;
+  color: var(--current-pen-color);
+  resize: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.postit-textarea::placeholder {
+  color: rgba(0, 0, 0, 0.3);
+  font-style: italic;
+}
+
+/* Pen Colors */
+.pen-blue { --current-pen-color: var(--pen-blue); }
+.pen-black { --current-pen-color: var(--pen-black); }
+.pen-red { --current-pen-color: var(--pen-red); }
+.pen-white { 
+  --current-pen-color: var(--pen-white);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* Text Alignments */
+.align-corner {
+  text-align: left;
+}
+
+.align-center {
+  text-align: center;
+}
+
+.align-justify {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+/* Quick Bar on Bottom */
+.postit-footer {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 6px;
+  opacity: 0.25;
+  transition: opacity 0.2s ease;
+}
+
+.postit-card:hover .postit-footer {
+  opacity: 0.85;
+}
+
+.resize-handle {
+  width: 12px;
+  height: 12px;
+  cursor: se-resize;
+  border-right: 2px solid rgba(0, 0, 0, 0.35);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.35);
+}
+
+/* Settings Menu Paper Design */
+.menu-container {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px dashed rgba(0, 0, 0, 0.15);
+  padding-bottom: 8px;
+}
+
+.menu-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--pen-black);
+}
+
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-section-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: rgba(30, 30, 30, 0.85);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.options-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.paper-chip {
+  padding: 6px 14px;
+  font-size: 20px;
+  border-radius: 16px;
+  cursor: pointer;
+  border: 1.5px solid rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.65);
+  transition: all 0.15s ease;
+}
+
+.paper-chip.active {
+  border: 2px solid var(--pen-blue);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transform: scale(1.04);
+}
+
+.pen-chip {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+.pen-chip.active {
+  transform: scale(1.2);
+  border: 2.5px solid #000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider-container input[type="range"] {
+  flex: 1;
+  accent-color: var(--pen-blue);
+}
+
+.menu-footer {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.15);
+}

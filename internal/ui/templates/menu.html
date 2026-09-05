@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+{{.CaveatFontFace}}
+{{.DrawablyCSS}}
+{{.PaperCSS}}
+
+  /* Custom Menu Enhancements */
+  body {
+    background: transparent;
+    padding: 10px;
+  }
+  .menu-paper-wrapper {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .hotkey-badge {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-family: monospace;
+    color: var(--pen-black);
+  }
+  </style>
+</head>
+<body>
+  <div id="menu-paper" class="menu-paper-wrapper paper-{{.Settings.MenuPaperType}} pattern-plain">
+    <div class="menu-container">
+      
+      <!-- Menu Header -->
+      <div class="menu-header">
+        <div class="menu-title">📝 Post-it Configurações</div>
+        <button id="btn-close-menu" class="icon-btn" title="Fechar Menu">✖</button>
+      </div>
+
+      <!-- Tipo de Papel -->
+      <div class="menu-section">
+        <div class="menu-section-title">📄 Tipo de Papel:</div>
+        <div id="paper-types" class="options-row">
+          <div class="paper-chip" data-val="polen">Pólen (Pastel)</div>
+          <div class="paper-chip" data-val="sulfite">Sulfite</div>
+          <div class="paper-chip" data-val="couche">Couché</div>
+          <div class="paper-chip" data-val="kraft">Kraft (Bege)</div>
+        </div>
+      </div>
+
+      <!-- Pauta do Papel -->
+      <div class="menu-section">
+        <div class="menu-section-title">📐 Pauta da Folha:</div>
+        <div id="paper-patterns" class="options-row">
+          <div class="paper-chip" data-val="dotted">Pontilhado</div>
+          <div class="paper-chip" data-val="grid">Quadriculado</div>
+          <div class="paper-chip" data-val="lines">Linhas</div>
+          <div class="paper-chip" data-val="plain">Liso</div>
+        </div>
+      </div>
+
+      <!-- Cor da Caneta -->
+      <div class="menu-section">
+        <div class="menu-section-title">✒️ Cor da Caneta:</div>
+        <div id="pen-colors" class="options-row" style="align-items: center;">
+          <div class="pen-chip" data-val="blue" style="background: var(--pen-blue);" title="Azul"></div>
+          <div class="pen-chip" data-val="black" style="background: var(--pen-black);" title="Preto"></div>
+          <div class="pen-chip" data-val="red" style="background: var(--pen-red);" title="Vermelho"></div>
+          <div class="pen-chip" data-val="white" style="background: var(--pen-white);" title="Branco"></div>
+        </div>
+      </div>
+
+      <!-- Alinhamento da Escrita -->
+      <div class="menu-section">
+        <div class="menu-section-title">✏️ Alinhamento do Texto:</div>
+        <div id="text-alignments" class="options-row">
+          <div class="paper-chip" data-val="corner">Cantos (Início)</div>
+          <div class="paper-chip" data-val="center">Centralizada</div>
+          <div class="paper-chip" data-val="justify">Livre / Justificada</div>
+        </div>
+      </div>
+
+      <!-- Cores e Saturação -->
+      <div class="menu-section">
+        <div class="menu-section-title">🎨 Tinta & Saturação (Sulfite / Couché):</div>
+        <div class="slider-container">
+          <input type="color" id="color-picker" title="Escolher cor" style="width: 40px; height: 32px; border: none; background: transparent; cursor: pointer;">
+          <input type="range" id="saturation-slider" min="10" max="100" value="{{.Settings.DefaultSaturation}}">
+          <span id="sat-value" style="font-size: 20px; min-width: 45px;">{{.Settings.DefaultSaturation}}%</span>
+        </div>
+      </div>
+
+      <!-- Gesto de Balançar Mouse & Atalhos -->
+      <div class="menu-section">
+        <div class="menu-section-title">👋 Balançar o Mouse:</div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 20px; cursor: pointer;">
+          <input type="checkbox" id="shake-toggle" {{if .Settings.ShakeEnabled}}checked{{end}}>
+          <span>Ocultar / Exibir notas ao balançar o mouse rapidamente</span>
+        </label>
+      </div>
+
+      <!-- Atalhos de Teclado -->
+      <div class="menu-section" style="font-size: 18px; color: rgba(30,30,30,0.75);">
+        <div>💡 <b>Atalhos:</b></div>
+        <div>• <span class="hotkey-badge">Cmd + Shift + N</span> : Criar novo Post-it</div>
+        <div>• <span class="hotkey-badge">Cmd + Shift + P</span> : Ocultar / Exibir Post-its</div>
+      </div>
+
+      <!-- Botões de Ação Inferiores -->
+      <div class="menu-footer">
+        <button id="btn-toggle-all" class="paper-chip" style="font-size: 18px;">👁️ Ocultar/Exibir</button>
+        <button id="btn-new-note" class="paper-chip" style="font-size: 18px; font-weight: bold; border-color: var(--pen-blue);">➕ Criar Nota</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+{{.DrawablyJS}}
+{{.MenuJS}}
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initMenu({{.SettingsJSON}});
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+{{.CaveatFontFace}}
+{{.DrawablyCSS}}
+{{.PaperCSS}}
+  </style>
+</head>
+<body>
+  <div id="postit-card" class="postit-card paper-{{.Note.PaperType}} pattern-{{.Note.PaperPattern}}"
+       style="{{if .Note.Color}}--custom-color: {{.Note.Color}};{{end}} --custom-sat: {{.Note.Saturation}}%;">
+    
+    <!-- Pin / Header Drag Area -->
+    <div id="drag-header" class="postit-header">
+      <div class="header-drag-zone" title="Arraste para mover">
+        <div class="tape-pin"></div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-new" class="icon-btn" title="Nova Nota (Cmd+Shift+N)">➕</button>
+        <button id="btn-menu" class="icon-btn" title="Configurações / Menu">⚙️</button>
+        <button id="btn-delete" class="icon-btn" title="Excluir Nota">🗑️</button>
+      </div>
+    </div>
+
+    <!-- Note Text Area -->
+    <div class="postit-content">
+      <textarea id="note-text"
+                class="postit-textarea pen-{{.Note.PenColor}} align-{{.Note.Alignment}}"
+                placeholder="Escreva algo aqui..."
+                spellcheck="false">{{.Note.Content}}</textarea>
+    </div>
+
+    <!-- Quick Footer -->
+    <div class="postit-footer">
+      <div class="resize-handle" title="Redimensionar"></div>
+    </div>
+  </div>
+
+  <script>
+{{.DrawablyJS}}
+{{.NoteJS}}
+
+    // Auto-initialize note with Go payload
+    document.addEventListener("DOMContentLoaded", () => {
+      initNote({{.NoteJSON}});
+    });
+  </script>
+</body>
+</html>
