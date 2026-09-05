@@ -101,15 +101,44 @@ function initNote(noteData) {
     sendAction("open_menu", { id: currentNote.id });
   });
 
-  // Attach Drawably effects
+  // Track active note for shortcuts
+  const markActive = () => {
+    if (currentNote && currentNote.id) {
+      sendAction("note_focus", { id: currentNote.id });
+    }
+  };
+  window.addEventListener("focus", markActive);
+  document.addEventListener("mousedown", markActive);
+
+  // Keyboard Shortcuts inside note window
+  window.addEventListener("keydown", (e) => {
+    if (e.metaKey && e.shiftKey) {
+      const key = e.key.toLowerCase();
+      if (key === "a") {
+        e.preventDefault();
+        sendAction("open_menu", { id: currentNote.id });
+      } else if (key === "d" || key === "x") {
+        e.preventDefault();
+        sendAction("delete_note", { id: currentNote.id });
+      } else if (key === "n") {
+        e.preventDefault();
+        sendAction("new_note", {});
+      } else if (key === "p") {
+        e.preventDefault();
+        sendAction("toggle_all", {});
+      }
+    }
+  });
+
+  // Attach Drawably effects with solid ink buttons
   if (window.drawably && window.drawably.drawablyButton) {
     const btnNew = document.getElementById("btn-new");
     const btnMenu = document.getElementById("btn-menu");
     const btnDelete = document.getElementById("btn-delete");
     try {
-      if (btnNew) window.drawably.drawablyButton(btnNew, { variant: "outline" });
-      if (btnMenu) window.drawably.drawablyButton(btnMenu, { variant: "outline" });
-      if (btnDelete) window.drawably.drawablyButton(btnDelete, { variant: "outline", tone: "danger" });
+      if (btnNew) window.drawably.drawablyButton(btnNew, { variant: "solid" });
+      if (btnMenu) window.drawably.drawablyButton(btnMenu, { variant: "solid" });
+      if (btnDelete) window.drawably.drawablyButton(btnDelete, { variant: "solid", tone: "danger" });
     } catch (err) {}
   }
 }

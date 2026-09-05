@@ -25,9 +25,16 @@ var (
 	toggleNotesH  SimpleHandler
 	openMenuH     SimpleHandler
 	appReopenH    SimpleHandler
+	deleteNoteH   SimpleHandler
 	panelMovedH   PanelMovedHandler
 	panelResizedH PanelResizedHandler
 )
+
+func SetDeleteHandler(h SimpleHandler) {
+	handlerMu.Lock()
+	defer handlerMu.Unlock()
+	deleteNoteH = h
+}
 
 func SetWebActionHandler(h WebActionHandler) {
 	handlerMu.Lock()
@@ -147,6 +154,8 @@ func onHotKeyTriggered(id C.int) {
 	handlerMu.RLock()
 	newH := newNoteH
 	toggleH := toggleNotesH
+	openH := openMenuH
+	delH := deleteNoteH
 	handlerMu.RUnlock()
 
 	switch int(id) {
@@ -157,6 +166,14 @@ func onHotKeyTriggered(id C.int) {
 	case 2: // New note (Cmd+Shift+N)
 		if newH != nil {
 			newH()
+		}
+	case 3: // Open Ajustes (Cmd+Shift+A)
+		if openH != nil {
+			openH()
+		}
+	case 4: // Delete note (Cmd+Shift+D)
+		if delH != nil {
+			delH()
 		}
 	}
 }

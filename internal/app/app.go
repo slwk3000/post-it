@@ -95,11 +95,14 @@ func (a *App) Start() error {
 		func() { a.OpenMenu() },
 		func() { a.OnAppReopen() },
 	)
+	macos.SetDeleteHandler(func() {
+		a.DeleteActiveNote()
+	})
 
-	// Setup macOS tray item
-	macos.SetupTray("📝")
+	// Setup macOS tray item (no emojis)
+	macos.SetupTray("Post-it")
 
-	// Register global hotkeys (Cmd+Shift+P, Cmd+Shift+N)
+	// Register global hotkeys (Cmd+Shift+P, Cmd+Shift+N, Cmd+Shift+A, Cmd+Shift+D)
 	macos.RegisterHotkeys()
 
 	// Start mouse shake detector
@@ -142,12 +145,34 @@ func (a *App) CreateNewNote() {
 func (a *App) DeleteNote(id string) {
 	a.mu.Lock()
 	delete(a.notes, id)
+	if a.activeNoteID == id {
+		a.activeNoteID = ""
+	}
 	allNotes := a.getAllNotesSliceLocked()
 	a.mu.Unlock()
 
 	a.wm.CloseNoteWindow(id)
 	if err := a.store.SaveNotes(allNotes); err != nil {
 		log.Printf("Save notes error: %v", err)
+	}
+}
+
+func (a *App) DeleteActiveNote() {
+	a.mu.Lock()
+	targetID := a.activeNoteID
+	if targetID == "" || a.notes[targetID] == nil {
+		var latestTime time.Time
+		for id, n := range a.notes {
+			if targetID == "" || n.UpdatedAt.After(latestTime) {
+				targetID = id
+				latestTime = n.UpdatedAt
+			}
+		}
+	}
+	a.mu.Unlock()
+
+	if targetID != "" {
+		a.DeleteNote(targetID)
 	}
 }
 
@@ -222,6 +247,7 @@ func (a *App) handleWebAction(panelID string, action string, payload json.RawMes
 		}
 		if err := json.Unmarshal(payload, &p); err == nil {
 			a.mu.Lock()
+			a.activeNoteID = p.ID
 			if note, ok := a.notes[p.ID]; ok {
 				note.Content = p.Content
 				note.UpdatedAt = time.Now()
@@ -231,11 +257,26 @@ func (a *App) handleWebAction(panelID string, action string, payload json.RawMes
 			a.store.SaveNotes(allNotes)
 		}
 
+	case "note_focus":
+		var p struct {
+			ID string `json:"id"`
+		}
+		if err := json.Unmarshal(payload, &p); err == nil && p.ID != "" {
+			a.mu.Lock()
+			a.activeNoteID = p.ID
+			a.mu.Unlock()
+		}
+
 	case "drag_start":
 		var p struct {
 			ID string `json:"id"`
 		}
 		if err := json.Unmarshal(payload, &p); err == nil {
+			if p.ID != "menu" && p.ID != "" {
+				a.mu.Lock()
+				a.activeNoteID = p.ID
+				a.mu.Unlock()
+			}
 			a.wm.StartDrag(p.ID)
 		}
 

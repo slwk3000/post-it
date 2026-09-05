@@ -12,6 +12,7 @@ function sendAction(action, payload = {}) {
 
 function initMenu(settings) {
   currentSettings = settings;
+  updateCardStyles();
 
   // Header Dragging
   const header = document.getElementById("drag-header");
@@ -22,21 +23,43 @@ function initMenu(settings) {
     });
   }
 
+  // Keyboard Shortcuts inside menu
+  window.addEventListener("keydown", (e) => {
+    if (e.metaKey && e.shiftKey) {
+      const key = e.key.toLowerCase();
+      if (key === "a") {
+        e.preventDefault();
+        sendAction("close_menu", {});
+      } else if (key === "n") {
+        e.preventDefault();
+        sendAction("new_note", {});
+      } else if (key === "p") {
+        e.preventDefault();
+        sendAction("toggle_all", {});
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      sendAction("close_menu", {});
+    }
+  });
+
   // Radio Groups
   bindRadioGroup("paper_type", (val) => {
     currentSettings.default_paper_type = val;
     currentSettings.menu_paper_type = val;
-    updateConfigPaperVisual(val);
+    updateCardStyles();
     onSettingsChanged();
   });
 
   bindRadioGroup("paper_pattern", (val) => {
     currentSettings.default_paper_pattern = val;
+    updateCardStyles();
     onSettingsChanged();
   });
 
   bindRadioGroup("pen_color", (val) => {
     currentSettings.default_pen_color = val;
+    updateCardStyles();
     onSettingsChanged();
   });
 
@@ -96,12 +119,7 @@ function initMenu(settings) {
       try { d.drawablyDivider(el); } catch (err) {}
     });
 
-    // Titles and text decorations
-    const wordConfigs = document.getElementById("word-configs");
-    if (wordConfigs) {
-      try { d.drawablyCircle(wordConfigs); } catch (err) {}
-    }
-
+    // Section labels and text decorations
     const lblPapel = document.getElementById("lbl-papel");
     if (lblPapel) {
       try { d.drawablyHighlight(lblPapel); } catch (err) {}
@@ -156,13 +174,16 @@ function bindRadioGroup(name, onChange) {
   });
 }
 
-function updateConfigPaperVisual(paperType) {
+function updateCardStyles() {
   const card = document.getElementById("config-card");
-  if (!card) return;
+  if (!card || !currentSettings) return;
+  const paper = currentSettings.default_paper_type || currentSettings.menu_paper_type || "polen";
+  const pattern = currentSettings.default_paper_pattern || "plain";
+  const pen = currentSettings.default_pen_color || "blue";
   card.className = "config-postit-card";
-  card.classList.add(`paper-${paperType}`);
-  card.classList.add("pattern-plain");
-  card.classList.add("pen-blue");
+  card.classList.add(`paper-${paper}`);
+  card.classList.add(`pattern-${pattern}`);
+  card.classList.add(`pen-${pen}`);
 }
 
 function onSettingsChanged() {

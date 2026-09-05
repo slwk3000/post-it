@@ -37,7 +37,7 @@
   </style>
 </head>
 <body>
-  <div id="config-card" class="config-postit-card paper-{{.Settings.MenuPaperType}} pattern-plain pen-blue">
+  <div id="config-card" class="config-postit-card paper-{{.Settings.MenuPaperType}} pattern-{{.Settings.DefaultPaperPattern}} pen-{{.Settings.DefaultPenColor}}">
     
     <!-- Pin / Header Drag Area -->
     <div id="drag-header" class="postit-header">
@@ -51,9 +51,9 @@
 
     <!-- Scrollable content area -->
     <div class="config-scroll-area">
-      <!-- Title: Configs -->
+      <!-- Title: Ajustes -->
       <div class="menu-title-row">
-        <h1 class="configs-title"><span id="word-configs">Configs</span></h1>
+        <h1 class="ajustes-title">Ajustes</h1>
       </div>
 
       <hr class="piece piece-div drawably-divider" id="rule-top" />
@@ -181,10 +181,10 @@
           <span id="lbl-keymaps">Keymaps</span>
         </div>
         <ul class="piece-list" id="shortcuts-list">
-          <li>criar: Cmd+Shift+N</li>
-          <li>apagar: botão x</li>
-          <li>ocultar/exibir: Cmd+Shift+P</li>
-          <li>config: botão cfg</li>
+          <li>criar nota: Cmd+Shift+N (ou botão +)</li>
+          <li>ajustes: Cmd+Shift+A (ou botão *)</li>
+          <li>apagar nota: Cmd+Shift+D (ou botão x)</li>
+          <li>ocultar/exibir: Cmd+Shift+P (ou balançar mouse)</li>
         </ul>
       </div>
 

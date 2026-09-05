@@ -152,45 +152,57 @@ func (wm *WindowManager) ToggleMenu(settings *model.Settings) error {
 	return wm.OpenMenu(settings)
 }
 
-func (wm *WindowManager) StartDrag(noteID string) {
+func (wm *WindowManager) StartDrag(panelID string) {
 	wm.mu.RLock()
-	ptr, exists := wm.notePanels[noteID]
-	wm.mu.RUnlock()
+	defer wm.mu.RUnlock()
 
-	if exists {
+	if panelID == "menu" && wm.menuPanel != nil {
+		StartDrag(wm.menuPanel)
+		return
+	}
+	if ptr, exists := wm.notePanels[panelID]; exists {
 		StartDrag(ptr)
 	}
 }
 
-func (wm *WindowManager) MovePanel(noteID string, dx, dy float64) {
+func (wm *WindowManager) MovePanel(panelID string, dx, dy float64) {
 	wm.mu.RLock()
-	ptr, exists := wm.notePanels[noteID]
-	wm.mu.RUnlock()
+	defer wm.mu.RUnlock()
 
-	if exists {
+	if panelID == "menu" && wm.menuPanel != nil {
+		MovePanel(wm.menuPanel, dx, dy)
+		return
+	}
+	if ptr, exists := wm.notePanels[panelID]; exists {
 		MovePanel(ptr, dx, dy)
 	}
 }
 
-func (wm *WindowManager) ResizePanel(noteID string, dw, dh float64) {
+func (wm *WindowManager) ResizePanel(panelID string, dw, dh float64) {
 	wm.mu.RLock()
-	ptr, exists := wm.notePanels[noteID]
-	wm.mu.RUnlock()
+	defer wm.mu.RUnlock()
 
-	if exists {
+	if panelID == "menu" && wm.menuPanel != nil {
+		ResizePanel(wm.menuPanel, dw, dh)
+		return
+	}
+	if ptr, exists := wm.notePanels[panelID]; exists {
 		ResizePanel(ptr, dw, dh)
 	}
 }
 
-func (wm *WindowManager) GetPanelFrame(noteID string) (float64, float64, float64, float64, bool) {
+func (wm *WindowManager) GetPanelFrame(panelID string) (float64, float64, float64, float64, bool) {
 	wm.mu.RLock()
-	ptr, exists := wm.notePanels[noteID]
-	wm.mu.RUnlock()
+	defer wm.mu.RUnlock()
 
-	if !exists {
-		return 0, 0, 0, 0, false
+	if panelID == "menu" && wm.menuPanel != nil {
+		x, y, w, h := GetPanelFrame(wm.menuPanel)
+		return x, y, w, h, true
+	}
+	if ptr, exists := wm.notePanels[panelID]; exists {
+		x, y, w, h := GetPanelFrame(ptr)
+		return x, y, w, h, true
 	}
 
-	x, y, w, h := GetPanelFrame(ptr)
-	return x, y, w, h, true
+	return 0, 0, 0, 0, false
 }

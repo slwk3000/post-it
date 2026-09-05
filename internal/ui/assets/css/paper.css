@@ -19,18 +19,29 @@
 
   --pattern-opacity: 0.18;
   --current-pen-color: var(--pen-blue);
+  --drawably-ink: var(--current-pen-color);
+  --drawably-stroke: var(--current-pen-color);
+  --drawably-fill: var(--current-pen-color);
+  --drawably-paper: #ffffff;
 }
 
-* {
+*,
+*::before,
+*::after,
+body,
+input,
+button,
+textarea,
+select,
+.drawably-host,
+.drawably-host * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  font-family: 'Caveat', cursive, sans-serif !important;
   -webkit-user-select: none;
   user-select: none;
 }
 
 body {
-  font-family: 'Caveat', cursive, sans-serif;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
@@ -189,11 +200,29 @@ body {
 }
 
 /* Pen Colors */
-.pen-blue { --current-pen-color: var(--pen-blue); }
-.pen-black { --current-pen-color: var(--pen-black); }
-.pen-red { --current-pen-color: var(--pen-red); }
+.pen-blue {
+  --current-pen-color: var(--pen-blue);
+  --drawably-ink: var(--pen-blue);
+  --drawably-stroke: var(--pen-blue);
+  --drawably-fill: var(--pen-blue);
+}
+.pen-black {
+  --current-pen-color: var(--pen-black);
+  --drawably-ink: var(--pen-black);
+  --drawably-stroke: var(--pen-black);
+  --drawably-fill: var(--pen-black);
+}
+.pen-red {
+  --current-pen-color: var(--pen-red);
+  --drawably-ink: var(--pen-red);
+  --drawably-stroke: var(--pen-red);
+  --drawably-fill: var(--pen-red);
+}
 .pen-white { 
   --current-pen-color: var(--pen-white);
+  --drawably-ink: var(--pen-white);
+  --drawably-stroke: var(--pen-white);
+  --drawably-fill: var(--pen-white);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
@@ -243,20 +272,49 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .header-actions .drawably-btn {
-  font-family: 'Caveat', cursive, sans-serif;
-  font-size: 17px;
+  font-family: 'Caveat', cursive, sans-serif !important;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
-  padding: 2px 7px;
-  min-height: 22px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: transparent;
   cursor: pointer;
-  color: var(--current-pen-color);
+  position: relative;
+  user-select: none;
+}
+
+/* Solid ink filled buttons */
+.drawably-button--solid {
+  color: #ffffff !important;
+}
+
+.drawably-button--solid .drawably-blob {
+  fill: var(--drawably-fill, var(--drawably-ink, var(--current-pen-color))) !important;
+  stroke: var(--drawably-fill, var(--drawably-ink, var(--current-pen-color))) !important;
+}
+
+.drawably-button--solid.drawably-button--danger .drawably-blob {
+  fill: var(--drawably-error, #dc2626) !important;
+  stroke: var(--drawably-error, #dc2626) !important;
+}
+
+.drawably-button--solid.drawably-button--danger {
+  --drawably-stroke: var(--drawably-error, #dc2626) !important;
+  --drawably-fill: var(--drawably-error, #dc2626) !important;
+  --drawably-ink: var(--drawably-error, #dc2626) !important;
+  color: #ffffff !important;
 }
 
 /* Settings Menu Paper Design */
@@ -273,17 +331,20 @@ body {
 .menu-title-row {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 2px;
+  justify-content: center;
+  margin: 4px 0 8px 0;
+  text-align: center;
 }
 
-.configs-title {
-  font-family: 'Caveat', cursive, sans-serif;
-  font-size: 34px;
+.ajustes-title {
+  font-family: 'Caveat', cursive, sans-serif !important;
+  font-size: 40px;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.1;
   margin: 0;
+  text-align: center;
   color: var(--current-pen-color);
+  letter-spacing: 0.5px;
 }
 
 .menu-field {

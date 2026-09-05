@@ -375,12 +375,18 @@ void macosRegisterHotkeys(void) {
     eventType.eventKind = kEventHotKeyPressed;
     InstallApplicationEventHandler(&hotKeyCarbonHandler, 1, &eventType, NULL, NULL);
 
-    EventHotKeyRef ref1, ref2;
+    EventHotKeyRef ref1, ref2, ref3, ref4;
     EventHotKeyID id1 = { 'POST', 1 };
     EventHotKeyID id2 = { 'POST', 2 };
+    EventHotKeyID id3 = { 'POST', 3 };
+    EventHotKeyID id4 = { 'POST', 4 };
 
     // Cmd+Shift+P (kVK_ANSI_P = 35): Toggle notes
     RegisterEventHotKey(35, cmdKey | shiftKey, id1, GetApplicationEventTarget(), 0, &ref1);
     // Cmd+Shift+N (kVK_ANSI_N = 45): New note
     RegisterEventHotKey(45, cmdKey | shiftKey, id2, GetApplicationEventTarget(), 0, &ref2);
+    // Cmd+Shift+A (kVK_ANSI_A = 0): Open Ajustes
+    RegisterEventHotKey(0, cmdKey | shiftKey, id3, GetApplicationEventTarget(), 0, &ref3);
+    // Cmd+Shift+D (kVK_ANSI_D = 2): Delete note
+    RegisterEventHotKey(2, cmdKey | shiftKey, id4, GetApplicationEventTarget(), 0, &ref4);
 }

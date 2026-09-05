@@ -53,8 +53,8 @@ func TestRenderMenuHTML(t *testing.T) {
 		t.Fatalf("RenderMenuHTML failed: %v", err)
 	}
 
-	if !strings.Contains(html, "Configs") {
-		t.Errorf("expected HTML to contain Configs title")
+	if !strings.Contains(html, "Ajustes") {
+		t.Errorf("expected HTML to contain Ajustes title")
 	}
 	if !strings.Contains(html, "pólen") {
 		t.Errorf("expected HTML to contain pólen paper option")
