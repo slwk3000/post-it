@@ -24,6 +24,7 @@ void macosMovePanel(void* panelPtr, double dx, double dy);
 
 void macosSetupTray(const char* title);
 void macosGetMousePos(double* x, double* y);
+void macosRegisterHotkeys(void);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,6 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
+#import <Carbon/Carbon.h>
 #import "bridge.h"
 
 // Forward declarations of Go exported callbacks
@@ -8,6 +9,7 @@ extern void onTrayNewNote(void);
 extern void onTrayToggleNotes(void);
 extern void onTrayOpenMenu(void);
 extern void onAppReopen(void);
+extern void onHotKeyTriggered(int hotkeyId);
 
 // Custom NSPanel that allows key/focus input while borderless
 @interface PostItPanel : NSPanel
@@ -287,4 +289,27 @@ void macosGetMousePos(double* x, double* y) {
     NSPoint p = [NSEvent mouseLocation];
     *x = p.x;
     *y = p.y;
+}
+
+static OSStatus hotKeyCarbonHandler(EventHandlerCallRef nextHandler, EventRef theEvent, void *userData) {
+    EventHotKeyID hkID;
+    GetEventParameter(theEvent, kEventParamDirectObject, typeEventHotKeyID, NULL, sizeof(hkID), NULL, &hkID);
+    onHotKeyTriggered((int)hkID.id);
+    return noErr;
+}
+
+void macosRegisterHotkeys(void) {
+    EventTypeSpec eventType;
+    eventType.eventClass = kEventClassKeyboard;
+    eventType.eventKind = kEventHotKeyPressed;
+    InstallApplicationEventHandler(&hotKeyCarbonHandler, 1, &eventType, NULL, NULL);
+
+    EventHotKeyRef ref1, ref2;
+    EventHotKeyID id1 = { 'POST', 1 };
+    EventHotKeyID id2 = { 'POST', 2 };
+
+    // Cmd+Shift+P (kVK_ANSI_P = 35): Toggle notes
+    RegisterEventHotKey(35, cmdKey | shiftKey, id1, GetApplicationEventTarget(), 0, &ref1);
+    // Cmd+Shift+N (kVK_ANSI_N = 45): New note
+    RegisterEventHotKey(45, cmdKey | shiftKey, id2, GetApplicationEventTarget(), 0, &ref2);
 }

@@ -104,6 +104,29 @@ func onAppReopen() {
 	}
 }
 
+//export onHotKeyTriggered
+func onHotKeyTriggered(id C.int) {
+	handlerMu.RLock()
+	newH := newNoteH
+	toggleH := toggleNotesH
+	handlerMu.RUnlock()
+
+	switch int(id) {
+	case 1: // Toggle notes (Cmd+Shift+P)
+		if toggleH != nil {
+			toggleH()
+		}
+	case 2: // New note (Cmd+Shift+N)
+		if newH != nil {
+			newH()
+		}
+	}
+}
+
+func RegisterHotkeys() {
+	C.macosRegisterHotkeys()
+}
+
 // Public API wrappers for Go
 func InitApp() {
 	C.macosInitApp()
