@@ -152,6 +152,26 @@ func (wm *WindowManager) ToggleMenu(settings *model.Settings) error {
 	return wm.OpenMenu(settings)
 }
 
+func (wm *WindowManager) StartDrag(noteID string) {
+	wm.mu.RLock()
+	ptr, exists := wm.notePanels[noteID]
+	wm.mu.RUnlock()
+
+	if exists {
+		StartDrag(ptr)
+	}
+}
+
+func (wm *WindowManager) MovePanel(noteID string, dx, dy float64) {
+	wm.mu.RLock()
+	ptr, exists := wm.notePanels[noteID]
+	wm.mu.RUnlock()
+
+	if exists {
+		MovePanel(ptr, dx, dy)
+	}
+}
+
 func (wm *WindowManager) GetPanelFrame(noteID string) (float64, float64, float64, float64, bool) {
 	wm.mu.RLock()
 	ptr, exists := wm.notePanels[noteID]
