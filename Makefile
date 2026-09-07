@@ -5,7 +5,7 @@ APP_BUNDLE := $(BUILD_DIR)/$(APP_NAME).app
 
 .PHONY: all build test app run clean
 
-all: test build
+all: app
 
 test:
 	go test -v ./...
@@ -13,9 +13,9 @@ test:
 build:
 	@mkdir -p $(BUILD_DIR)
 	go build -ldflags="-s -w" -o $(BUILD_DIR)/$(BINARY) ./cmd/post-it
+	@./scripts/bundle_app.sh
 
 app: build
-	@./scripts/bundle_app.sh
 
 run: app
 	@killall post-it 2>/dev/null || true
