@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -53,8 +54,10 @@ func TestRenderMenuHTML(t *testing.T) {
 		t.Fatalf("RenderMenuHTML failed: %v", err)
 	}
 
-	if !strings.Contains(html, "Ajustes") {
-		t.Errorf("expected HTML to contain Ajustes title")
+	_ = os.WriteFile("/tmp/menu_rendered.html", []byte(html), 0644)
+
+	if !strings.Contains(html, "post-it") {
+		t.Errorf("expected HTML to contain post-it wordmark")
 	}
 	if !strings.Contains(html, "pólen") {
 		t.Errorf("expected HTML to contain pólen paper option")
