@@ -389,6 +389,9 @@ func (a *App) handleWebAction(panelID string, action string, payload json.RawMes
 	case "toggle_all":
 		a.ToggleAllNotes()
 
+	case "quit_app":
+		macos.TerminateApp()
+
 	case "save_settings":
 		var newSettings model.Settings
 		if err := json.Unmarshal(payload, &newSettings); err == nil {

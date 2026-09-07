@@ -117,6 +117,11 @@ function initNote(noteData) {
 
   // Keyboard Shortcuts inside note window
   window.addEventListener("keydown", (e) => {
+    if (e.metaKey && e.key.toLowerCase() === "q") {
+      e.preventDefault();
+      sendAction("quit_app", {});
+      return;
+    }
     if (e.metaKey && e.shiftKey) {
       const key = e.key.toLowerCase();
       if (key === "a") {

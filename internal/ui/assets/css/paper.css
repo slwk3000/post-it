@@ -318,28 +318,34 @@ body {
   text-align: center;
 }
 
+.menu-title-row h1,
 .ajustes-title {
   margin: 0;
+  padding: 0;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
 }
 
 .wordmark {
-  display: inline-block;
-  height: 48px;
-  width: auto;
-  max-width: 220px;
+  display: block;
+  width: 220px;
+  height: auto;
+  aspect-ratio: 476 / 155;
+  margin: 0 auto;
   overflow: visible;
+  position: relative;
+  z-index: 1;
   --drawably-frame: 0;
   animation: drawably-boil 1200ms step-end infinite;
 }
 
 .wordmark path {
   fill: none;
-  stroke: var(--current-pen-color);
-  stroke-width: 2.8;
+  stroke: var(--current-pen-color, #1d4ed8);
+  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

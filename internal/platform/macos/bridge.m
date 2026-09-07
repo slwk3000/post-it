@@ -37,6 +37,16 @@ extern void onPanelResized(char* panelId, double w, double h);
     [NSApp activateIgnoringOtherApps:YES];
     [self makeKeyWindow];
 }
+- (BOOL)performKeyEquivalent:(NSEvent *)event {
+    NSEventModifierFlags flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
+    if (flags == NSEventModifierFlagCommand) {
+        if ([[event charactersIgnoringModifiers] isEqualToString:@"q"]) {
+            [NSApp terminate:nil];
+            return YES;
+        }
+    }
+    return [super performKeyEquivalent:event];
+}
 - (void)onWindowMoved:(NSNotification *)note {
     NSRect frame = [self frame];
     NSScreen *screen = [NSScreen mainScreen];
@@ -108,8 +118,17 @@ void macosInitApp(void) {
     // Run as background accessory app (no clutter in Dock by default)
     [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
 
-    // Setup standard Edit menu to enable Cmd+C, Cmd+V, Cmd+X, Cmd+A, Cmd+Z in WKWebView
+    // Setup main menu with App (Quit Cmd+Q) and Edit menus
     NSMenu *mainMenu = [[NSMenu alloc] init];
+
+    // Application Menu with Quit Post-it (Cmd+Q)
+    NSMenuItem *appMenuItem = [[NSMenuItem alloc] init];
+    NSMenu *appMenu = [[NSMenu alloc] initWithTitle:@"Post-it"];
+    [appMenu addItemWithTitle:@"Encerrar Post-it" action:@selector(terminate:) keyEquivalent:@"q"];
+    [appMenuItem setSubmenu:appMenu];
+    [mainMenu addItem:appMenuItem];
+
+    // Edit Menu for clipboard shortcuts inside textareas
     NSMenuItem *editMenuItem = [[NSMenuItem alloc] init];
     NSMenu *editMenu = [[NSMenu alloc] initWithTitle:@"Edit"];
     [editMenu addItemWithTitle:@"Undo" action:@selector(undo:) keyEquivalent:@"z"];
@@ -122,6 +141,17 @@ void macosInitApp(void) {
     [editMenuItem setSubmenu:editMenu];
     [mainMenu addItem:editMenuItem];
     [NSApp setMainMenu:mainMenu];
+
+    // Global in-app key monitor for Cmd+Q
+    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown handler:^NSEvent *(NSEvent *event) {
+        if (([event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask) == NSEventModifierFlagCommand) {
+            if ([[event charactersIgnoringModifiers] isEqualToString:@"q"]) {
+                [NSApp terminate:nil];
+                return nil;
+            }
+        }
+        return event;
+    }];
 
     gAppDelegate = [[PostItAppDelegate alloc] init];
     [NSApp setDelegate:gAppDelegate];
