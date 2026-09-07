@@ -15,17 +15,31 @@ function initNote(noteData) {
   applyNoteConfig(noteData);
 
   const textarea = document.getElementById("note-text");
+  const flushSave = () => {
+    clearTimeout(saveTimeout);
+    if (currentNote && textarea) {
+      sendAction("save_content", {
+        id: currentNote.id,
+        content: textarea.value
+      });
+    }
+  };
+
   if (textarea) {
     textarea.value = noteData.content || "";
     textarea.addEventListener("input", () => {
       clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(() => {
-        sendAction("save_content", {
-          id: currentNote.id,
-          content: textarea.value
-        });
-      }, 250);
+      saveTimeout = setTimeout(flushSave, 80);
     });
+    textarea.addEventListener("blur", flushSave);
+    window.addEventListener("beforeunload", flushSave);
+    window.addEventListener("pagehide", flushSave);
+
+    // Auto-focus immediately so user can start writing without any click
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }, 30);
   }
 
   // Header Dragging (Native macOS Cocoa Window Drag)
@@ -119,6 +133,7 @@ function initNote(noteData) {
   window.addEventListener("keydown", (e) => {
     if (e.metaKey && e.key.toLowerCase() === "q") {
       e.preventDefault();
+      flushSave();
       sendAction("quit_app", {});
       return;
     }
@@ -126,7 +141,13 @@ function initNote(noteData) {
       const key = e.key.toLowerCase();
       if (key === "a") {
         e.preventDefault();
-        sendAction("open_menu", { id: currentNote.id });
+        sendAction("toggle_menu", { id: currentNote.id });
+      } else if (key === "u") {
+        e.preventDefault();
+        sendAction("next_note", { id: currentNote.id });
+      } else if (key === "r") {
+        e.preventDefault();
+        sendAction("prev_note", { id: currentNote.id });
       } else if (key === "d" || key === "x") {
         e.preventDefault();
         sendAction("delete_note", { id: currentNote.id });

@@ -12,6 +12,7 @@ extern void onAppReopen(void);
 extern void onHotKeyTriggered(int hotkeyId);
 extern void onPanelMoved(char* panelId, double x, double y);
 extern void onPanelResized(char* panelId, double w, double h);
+extern void onAppWillTerminate(void);
 
 // Custom NSPanel that allows key/focus input while borderless
 @interface PostItPanel : NSPanel
@@ -82,6 +83,9 @@ extern void onPanelResized(char* panelId, double w, double h);
 - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag {
     onAppReopen();
     return YES;
+}
+- (void)applicationWillTerminate:(NSNotification *)notification {
+    onAppWillTerminate();
 }
 @end
 
@@ -313,6 +317,20 @@ void macosClosePanel(void* panelPtr) {
     });
 }
 
+void macosFocusPanel(void* panelPtr) {
+    if (!panelPtr) return;
+    PostItPanel *panel = (__bridge PostItPanel*)panelPtr;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [NSApp activateIgnoringOtherApps:YES];
+        [panel orderFrontRegardless];
+        [panel makeKeyWindow];
+        if (panel.webView) {
+            [panel makeFirstResponder:panel.webView];
+            [panel.webView evaluateJavaScript:@"var el = document.getElementById('note-text'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }" completionHandler:nil];
+        }
+    });
+}
+
 void macosStartDrag(void* panelPtr) {
     if (!panelPtr) return;
     PostItPanel *panel = (__bridge PostItPanel*)panelPtr;
@@ -434,18 +452,24 @@ void macosRegisterHotkeys(void) {
     eventType.eventKind = kEventHotKeyPressed;
     InstallApplicationEventHandler(&hotKeyCarbonHandler, 1, &eventType, NULL, NULL);
 
-    EventHotKeyRef ref1, ref2, ref3, ref4;
+    EventHotKeyRef ref1, ref2, ref3, ref4, ref5, ref6;
     EventHotKeyID id1 = { 'POST', 1 };
     EventHotKeyID id2 = { 'POST', 2 };
     EventHotKeyID id3 = { 'POST', 3 };
     EventHotKeyID id4 = { 'POST', 4 };
+    EventHotKeyID id5 = { 'POST', 5 };
+    EventHotKeyID id6 = { 'POST', 6 };
 
     // Cmd+Shift+P (kVK_ANSI_P = 35): Toggle notes
     RegisterEventHotKey(35, cmdKey | shiftKey, id1, GetApplicationEventTarget(), 0, &ref1);
     // Cmd+Shift+N (kVK_ANSI_N = 45): New note
     RegisterEventHotKey(45, cmdKey | shiftKey, id2, GetApplicationEventTarget(), 0, &ref2);
-    // Cmd+Shift+A (kVK_ANSI_A = 0): Open Ajustes
+    // Cmd+Shift+A (kVK_ANSI_A = 0): Toggle Ajustes
     RegisterEventHotKey(0, cmdKey | shiftKey, id3, GetApplicationEventTarget(), 0, &ref3);
     // Cmd+Shift+D (kVK_ANSI_D = 2): Delete note
     RegisterEventHotKey(2, cmdKey | shiftKey, id4, GetApplicationEventTarget(), 0, &ref4);
+    // Cmd+Shift+U (kVK_ANSI_U = 32): Next note
+    RegisterEventHotKey(32, cmdKey | shiftKey, id5, GetApplicationEventTarget(), 0, &ref5);
+    // Cmd+Shift+R (kVK_ANSI_R = 15): Previous note
+    RegisterEventHotKey(15, cmdKey | shiftKey, id6, GetApplicationEventTarget(), 0, &ref6);
 }

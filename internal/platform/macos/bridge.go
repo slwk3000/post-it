@@ -26,9 +26,25 @@ var (
 	openMenuH     SimpleHandler
 	appReopenH    SimpleHandler
 	deleteNoteH   SimpleHandler
+	nextNoteH     SimpleHandler
+	prevNoteH     SimpleHandler
+	appTerminateH SimpleHandler
 	panelMovedH   PanelMovedHandler
 	panelResizedH PanelResizedHandler
 )
+
+func SetNoteNavigationHandlers(onNext, onPrev SimpleHandler) {
+	handlerMu.Lock()
+	defer handlerMu.Unlock()
+	nextNoteH = onNext
+	prevNoteH = onPrev
+}
+
+func SetAppTerminateHandler(onTerminate SimpleHandler) {
+	handlerMu.Lock()
+	defer handlerMu.Unlock()
+	appTerminateH = onTerminate
+}
 
 func SetDeleteHandler(h SimpleHandler) {
 	handlerMu.Lock()
@@ -149,6 +165,16 @@ func onPanelResized(panelID *C.char, w C.double, h C.double) {
 	}
 }
 
+//export onAppWillTerminate
+func onAppWillTerminate() {
+	handlerMu.RLock()
+	h := appTerminateH
+	handlerMu.RUnlock()
+	if h != nil {
+		h()
+	}
+}
+
 //export onHotKeyTriggered
 func onHotKeyTriggered(id C.int) {
 	handlerMu.RLock()
@@ -156,6 +182,8 @@ func onHotKeyTriggered(id C.int) {
 	toggleH := toggleNotesH
 	openH := openMenuH
 	delH := deleteNoteH
+	nextH := nextNoteH
+	prevH := prevNoteH
 	handlerMu.RUnlock()
 
 	switch int(id) {
@@ -167,13 +195,21 @@ func onHotKeyTriggered(id C.int) {
 		if newH != nil {
 			newH()
 		}
-	case 3: // Open Ajustes (Cmd+Shift+A)
+	case 3: // Toggle Ajustes (Cmd+Shift+A)
 		if openH != nil {
 			openH()
 		}
 	case 4: // Delete note (Cmd+Shift+D)
 		if delH != nil {
 			delH()
+		}
+	case 5: // Next note (Cmd+Shift+U)
+		if nextH != nil {
+			nextH()
+		}
+	case 6: // Prev note (Cmd+Shift+R)
+		if prevH != nil {
+			prevH()
 		}
 	}
 }
@@ -241,6 +277,10 @@ func GetPanelFrame(panelPtr unsafe.Pointer) (float64, float64, float64, float64)
 
 func ClosePanel(panelPtr unsafe.Pointer) {
 	C.macosClosePanel(panelPtr)
+}
+
+func FocusPanel(panelPtr unsafe.Pointer) {
+	C.macosFocusPanel(panelPtr)
 }
 
 func StartDrag(panelPtr unsafe.Pointer) {

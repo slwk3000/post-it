@@ -18,6 +18,7 @@ void macosSetPanelVisible(void* panelPtr, int visible);
 void macosSetPanelFrame(void* panelPtr, double x, double y, double w, double h);
 void macosGetPanelFrame(void* panelPtr, double* x, double* y, double* w, double* h);
 void macosClosePanel(void* panelPtr);
+void macosFocusPanel(void* panelPtr);
 
 void macosStartDrag(void* panelPtr);
 void macosMovePanel(void* panelPtr, double dx, double dy);

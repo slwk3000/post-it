@@ -147,16 +147,29 @@ func (wm *WindowManager) CloseMenu() {
 	}
 }
 
-func (wm *WindowManager) ToggleMenu(settings *model.Settings) error {
+func (wm *WindowManager) IsMenuVisible() bool {
 	wm.mu.RLock()
-	visible := wm.menuVisible
-	wm.mu.RUnlock()
+	defer wm.mu.RUnlock()
+	return wm.menuVisible
+}
 
-	if visible {
-		wm.CloseMenu()
-		return nil
+func (wm *WindowManager) FocusNoteWindow(noteID string) error {
+	wm.mu.Lock()
+	ptr, exists := wm.notePanels[noteID]
+	if !exists {
+		wm.mu.Unlock()
+		return fmt.Errorf("note window %s not found", noteID)
 	}
-	return wm.OpenMenu(settings)
+	if !wm.notesVisible {
+		wm.notesVisible = true
+		for _, p := range wm.notePanels {
+			SetPanelVisible(p, true)
+		}
+	}
+	wm.mu.Unlock()
+
+	FocusPanel(ptr)
+	return nil
 }
 
 func (wm *WindowManager) StartDrag(panelID string) {

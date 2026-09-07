@@ -12,7 +12,9 @@ mkdir -p "${APP_BUNDLE}/Contents/MacOS"
 mkdir -p "${APP_BUNDLE}/Contents/Resources"
 
 cp "${BUILD_DIR}/${BINARY}" "${APP_BUNDLE}/Contents/MacOS/${BINARY}"
-chmod +x "${APP_BUNDLE}/Contents/MacOS/${BINARY}"
+if [ -f "assets/icons/AppIcon.icns" ]; then
+	cp "assets/icons/AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/AppIcon.icns"
+fi
 
 cat << PLIST > "${APP_BUNDLE}/Contents/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -21,6 +23,8 @@ cat << PLIST > "${APP_BUNDLE}/Contents/Info.plist"
 <dict>
 	<key>CFBundleExecutable</key>
 	<string>${BINARY}</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.slwk.postit</string>
 	<key>CFBundleName</key>

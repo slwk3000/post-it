@@ -40,6 +40,12 @@ function initMenu(settings) {
       if (key === "a") {
         e.preventDefault();
         sendAction("close_menu", {});
+      } else if (key === "u") {
+        e.preventDefault();
+        sendAction("next_note", {});
+      } else if (key === "r") {
+        e.preventDefault();
+        sendAction("prev_note", {});
       } else if (key === "n") {
         e.preventDefault();
         sendAction("new_note", {});

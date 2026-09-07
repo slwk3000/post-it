@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sort"
 	"sync"
 	"time"
 
@@ -61,22 +62,31 @@ func (a *App) Start() error {
 	// Initialize macOS Application
 	macos.InitApp()
 
-	// Load existing notes
+	// Check if this is the very first time launching the app
+	isFirstRun := !a.store.NotesFileExists()
 	existingNotes, err := a.store.LoadNotes()
 	if err != nil {
 		log.Printf("Error loading notes: %v", err)
 	}
 
-	// If no notes exist yet, create initial welcome note
-	if len(existingNotes) == 0 {
+	// Only show welcome note on the very first run
+	if isFirstRun && len(existingNotes) == 0 {
 		welcomeNote := model.NewNote(generateID(), a.settings)
-		welcomeNote.Content = "Bem-vindo ao Post-it\n\n- Arraste a nota pelo topo\n- Balance o mouse para ocultar ou exibir\n- Cmd+Shift+N para criar nota\n- Botao cfg para abrir configs\n- Cmd+C, Cmd+V e Cmd+A suportados"
+		welcomeNote.Content = "Bem-vindo ao Post-it\n\n- Arraste a nota pelo topo\n- Balance o mouse para ocultar ou exibir\n- Cmd+Shift+N para criar nota\n- Botao * para abrir Ajustes\n- Cmd+Shift+U / Cmd+Shift+R para alternar notas\n- Cmd+C, Cmd+V e Cmd+A suportados"
 		welcomeNote.X = 140
 		welcomeNote.Y = 140
 		existingNotes = []*model.Note{welcomeNote}
 		if err := a.store.SaveNotes(existingNotes); err != nil {
 			log.Printf("Error saving welcome note: %v", err)
 		}
+	} else if len(existingNotes) == 0 {
+		// Subsequent runs with 0 notes: open a fresh blank note ready for typing
+		blankNote := model.NewNote(generateID(), a.settings)
+		blankNote.Content = ""
+		blankNote.X = 140
+		blankNote.Y = 140
+		existingNotes = []*model.Note{blankNote}
+		_ = a.store.SaveNotes(existingNotes)
 	}
 
 	a.mu.Lock()
@@ -92,27 +102,45 @@ func (a *App) Start() error {
 	macos.SetTrayHandlers(
 		func() { a.CreateNewNote() },
 		func() { a.ToggleAllNotes() },
-		func() { a.OpenMenu() },
+		func() { a.ToggleMenu() },
 		func() { a.OnAppReopen() },
 	)
 	macos.SetDeleteHandler(func() {
 		a.DeleteActiveNote()
 	})
+	macos.SetNoteNavigationHandlers(
+		func() { a.FocusNextNote() },
+		func() { a.FocusPrevNote() },
+	)
+	macos.SetAppTerminateHandler(func() {
+		a.mu.Lock()
+		allNotes := a.getAllNotesSliceLocked()
+		a.mu.Unlock()
+		_ = a.store.SaveNotes(allNotes)
+	})
 
 	// Setup macOS tray item (no emojis)
 	macos.SetupTray("Post-it")
 
-	// Register global hotkeys (Cmd+Shift+P, Cmd+Shift+N, Cmd+Shift+A, Cmd+Shift+D)
+	// Register global hotkeys (Cmd+Shift+P, Cmd+Shift+N, Cmd+Shift+A, Cmd+Shift+D, Cmd+Shift+U, Cmd+Shift+R)
 	macos.RegisterHotkeys()
 
 	// Start mouse shake detector
 	a.shakeDetector.Start()
 
 	// Create windows for all notes
+	var lastNoteID string
 	for _, n := range existingNotes {
 		if err := a.wm.CreateNoteWindow(n); err != nil {
 			log.Printf("Error creating note window %s: %v", n.ID, err)
 		}
+		lastNoteID = n.ID
+	}
+
+	// Focus the active note immediately for instant typing
+	if lastNoteID != "" {
+		a.activeNoteID = lastNoteID
+		_ = a.wm.FocusNoteWindow(lastNoteID)
 	}
 
 	// Run macOS runloop
@@ -171,6 +199,72 @@ func (a *App) CreateNewNote(sourceID ...string) {
 	if err := a.wm.CreateNoteWindow(note); err != nil {
 		log.Printf("Create note window error: %v", err)
 	}
+
+	// Immediately focus the newly created note so user can type right away
+	_ = a.wm.FocusNoteWindow(note.ID)
+}
+
+func (a *App) getOrderedNoteIDsLocked() []string {
+	type noteItem struct {
+		id        string
+		createdAt time.Time
+	}
+	var items []noteItem
+	for id, n := range a.notes {
+		items = append(items, noteItem{id: id, createdAt: n.CreatedAt})
+	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].createdAt.Before(items[j].createdAt)
+	})
+	var ids []string
+	for _, it := range items {
+		ids = append(ids, it.id)
+	}
+	return ids
+}
+
+func (a *App) FocusNextNote() {
+	a.mu.Lock()
+	ids := a.getOrderedNoteIDsLocked()
+	if len(ids) == 0 {
+		a.mu.Unlock()
+		return
+	}
+	currentIdx := -1
+	for i, id := range ids {
+		if id == a.activeNoteID {
+			currentIdx = i
+			break
+		}
+	}
+	nextIdx := (currentIdx + 1) % len(ids)
+	targetID := ids[nextIdx]
+	a.activeNoteID = targetID
+	a.mu.Unlock()
+
+	_ = a.wm.FocusNoteWindow(targetID)
+}
+
+func (a *App) FocusPrevNote() {
+	a.mu.Lock()
+	ids := a.getOrderedNoteIDsLocked()
+	if len(ids) == 0 {
+		a.mu.Unlock()
+		return
+	}
+	currentIdx := -1
+	for i, id := range ids {
+		if id == a.activeNoteID {
+			currentIdx = i
+			break
+		}
+	}
+	prevIdx := (currentIdx - 1 + len(ids)) % len(ids)
+	targetID := ids[prevIdx]
+	a.activeNoteID = targetID
+	a.mu.Unlock()
+
+	_ = a.wm.FocusNoteWindow(targetID)
 }
 
 func (a *App) DeleteNote(id string) {
@@ -211,6 +305,14 @@ func (a *App) ToggleAllNotes() {
 	a.wm.ToggleAllNotes()
 }
 
+func (a *App) ToggleMenu(targetID ...string) {
+	if a.wm.IsMenuVisible() {
+		a.wm.CloseMenu()
+		return
+	}
+	a.OpenMenu(targetID...)
+}
+
 func (a *App) OpenMenu(targetID ...string) {
 	a.mu.Lock()
 	if len(targetID) > 0 && targetID[0] != "" {
@@ -241,7 +343,7 @@ func (a *App) OnAppReopen() {
 	if !a.wm.AreNotesVisible() {
 		a.wm.SetNotesVisible(true)
 	} else {
-		a.OpenMenu()
+		a.ToggleMenu()
 	}
 }
 
@@ -366,8 +468,21 @@ func (a *App) handleWebAction(panelID string, action string, payload json.RawMes
 		json.Unmarshal(payload, &p)
 		a.OpenMenu(p.ID)
 
+	case "toggle_menu":
+		var p struct {
+			ID string `json:"id"`
+		}
+		json.Unmarshal(payload, &p)
+		a.ToggleMenu(p.ID)
+
 	case "close_menu":
 		a.wm.CloseMenu()
+
+	case "next_note":
+		a.FocusNextNote()
+
+	case "prev_note":
+		a.FocusPrevNote()
 
 	case "new_note":
 		var p struct {
@@ -390,6 +505,10 @@ func (a *App) handleWebAction(panelID string, action string, payload json.RawMes
 		a.ToggleAllNotes()
 
 	case "quit_app":
+		a.mu.Lock()
+		allNotes := a.getAllNotesSliceLocked()
+		a.mu.Unlock()
+		_ = a.store.SaveNotes(allNotes)
 		macos.TerminateApp()
 
 	case "save_settings":

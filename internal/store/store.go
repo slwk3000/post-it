@@ -20,6 +20,13 @@ func New(cfg *config.Config) *Store {
 	return &Store{cfg: cfg}
 }
 
+func (s *Store) NotesFileExists() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, err := os.Stat(s.cfg.NotesFile)
+	return err == nil
+}
+
 func (s *Store) LoadNotes() ([]*model.Note, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
