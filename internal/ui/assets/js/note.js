@@ -58,7 +58,7 @@ function initNote(noteData) {
   if (btnNew) {
     btnNew.addEventListener("click", (e) => {
       e.stopPropagation();
-      sendAction("new_note", {});
+      sendAction("new_note", { id: currentNote.id });
     });
   }
 
@@ -101,14 +101,19 @@ function initNote(noteData) {
     sendAction("open_menu", { id: currentNote.id });
   });
 
-  // Track active note for shortcuts
-  const markActive = () => {
+  // Track active note and hover-to-focus without clicking
+  const onHover = () => {
     if (currentNote && currentNote.id) {
-      sendAction("note_focus", { id: currentNote.id });
+      sendAction("panel_hover", { id: currentNote.id });
+      const textarea = document.getElementById("note-text");
+      if (textarea && document.activeElement !== textarea) {
+        textarea.focus();
+      }
     }
   };
-  window.addEventListener("focus", markActive);
-  document.addEventListener("mousedown", markActive);
+  window.addEventListener("mouseenter", onHover);
+  window.addEventListener("focus", onHover);
+  document.addEventListener("mousedown", onHover);
 
   // Keyboard Shortcuts inside note window
   window.addEventListener("keydown", (e) => {
@@ -122,7 +127,7 @@ function initNote(noteData) {
         sendAction("delete_note", { id: currentNote.id });
       } else if (key === "n") {
         e.preventDefault();
-        sendAction("new_note", {});
+        sendAction("new_note", { id: currentNote.id });
       } else if (key === "p") {
         e.preventDefault();
         sendAction("toggle_all", {});
@@ -130,15 +135,15 @@ function initNote(noteData) {
     }
   });
 
-  // Attach Drawably effects with solid ink buttons
+  // Attach Drawably effects with outline buttons
   if (window.drawably && window.drawably.drawablyButton) {
     const btnNew = document.getElementById("btn-new");
     const btnMenu = document.getElementById("btn-menu");
     const btnDelete = document.getElementById("btn-delete");
     try {
-      if (btnNew) window.drawably.drawablyButton(btnNew, { variant: "solid" });
-      if (btnMenu) window.drawably.drawablyButton(btnMenu, { variant: "solid" });
-      if (btnDelete) window.drawably.drawablyButton(btnDelete, { variant: "solid", tone: "danger" });
+      if (btnNew) window.drawably.drawablyButton(btnNew, { variant: "outline" });
+      if (btnMenu) window.drawably.drawablyButton(btnMenu, { variant: "outline" });
+      if (btnDelete) window.drawably.drawablyButton(btnDelete, { variant: "outline" });
     } catch (err) {}
   }
 }
@@ -148,12 +153,13 @@ function applyNoteConfig(note) {
   const textarea = document.getElementById("note-text");
   if (!card || !textarea) return;
 
-  // Paper Type & Pattern
+  // Paper Type, Pattern & Pen Color on card so header buttons inherit pen color
   card.className = "postit-card";
   card.classList.add(`paper-${note.paper_type || 'polen'}`);
   card.classList.add(`pattern-${note.paper_pattern || 'dotted'}`);
+  card.classList.add(`pen-${note.pen_color || 'blue'}`);
 
-  // Pen Color & Alignment
+  // Pen Color & Alignment on textarea
   const alignClass = note.alignment === "corner" ? "left" : (note.alignment || "left");
   textarea.className = "postit-textarea";
   textarea.classList.add(`pen-${note.pen_color || 'blue'}`);

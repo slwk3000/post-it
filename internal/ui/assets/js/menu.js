@@ -23,6 +23,11 @@ function initMenu(settings) {
     });
   }
 
+  // Hover activation
+  window.addEventListener("mouseenter", () => {
+    sendAction("panel_hover", { id: "menu" });
+  });
+
   // Keyboard Shortcuts inside menu
   window.addEventListener("keydown", (e) => {
     if (e.metaKey && e.shiftKey) {
@@ -187,10 +192,7 @@ function updateCardStyles() {
 }
 
 function onSettingsChanged() {
-  clearTimeout(changeTimeout);
-  changeTimeout = setTimeout(() => {
-    sendAction("save_settings", currentSettings);
-  }, 100);
+  sendAction("save_settings", currentSettings);
 }
 
 window.initMenu = initMenu;

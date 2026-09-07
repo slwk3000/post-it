@@ -32,6 +32,11 @@ extern void onPanelResized(char* panelId, double w, double h);
     [NSApp activateIgnoringOtherApps:YES];
     [super mouseDown:event];
 }
+- (void)mouseEntered:(NSEvent *)event {
+    [super mouseEntered:event];
+    [NSApp activateIgnoringOtherApps:YES];
+    [self makeKeyWindow];
+}
 - (void)onWindowMoved:(NSNotification *)note {
     NSRect frame = [self frame];
     NSScreen *screen = [NSScreen mainScreen];
@@ -148,14 +153,10 @@ void* macosCreatePanel(const char* panelId, double x, double y, double w, double
                                                    defer:NO];
 
         panel.panelId = [NSString stringWithUTF8String:panelId];
-        if (isFloating) {
-            [panel setLevel:NSFloatingWindowLevel];
-        } else {
-            [panel setLevel:NSFloatingWindowLevel + 1];
-        }
+        [panel setLevel:NSFloatingWindowLevel];
         [panel setOpaque:NO];
         [panel setBackgroundColor:[NSColor clearColor]];
-        [panel setHasShadow:YES];
+        [panel setHasShadow:NO];
         [panel setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary];
 
         // WebKit Configuration
@@ -176,6 +177,14 @@ void* macosCreatePanel(const char* panelId, double x, double y, double w, double
 
         panel.webView = wv;
         [panel.contentView addSubview:wv];
+
+        // Hover tracking area to activate panel on mouse enter
+        NSTrackingArea *trackingArea = [[NSTrackingArea alloc]
+            initWithRect:panel.contentView.bounds
+            options:NSTrackingMouseEnteredAndExited | NSTrackingActiveAlways | NSTrackingInVisibleRect
+            owner:panel
+            userInfo:nil];
+        [panel.contentView addTrackingArea:trackingArea];
 
         [[NSNotificationCenter defaultCenter] addObserver:panel
                                                  selector:@selector(onWindowMoved:)
@@ -279,6 +288,7 @@ void macosStartDrag(void* panelPtr) {
     PostItPanel *panel = (__bridge PostItPanel*)panelPtr;
 
     dispatch_async(dispatch_get_main_queue(), ^{
+        [panel orderFrontRegardless];
         NSEvent *event = [NSApp currentEvent];
         if (event) {
             [panel performWindowDragWithEvent:event];
@@ -325,9 +335,27 @@ void macosResizePanel(void* panelPtr, double dw, double dh) {
 void macosSetupTray(const char* title) {
     dispatch_async(dispatch_get_main_queue(), ^{
         if (!gStatusItem) {
-            gStatusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
+            gStatusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength];
         }
-        gStatusItem.button.title = [NSString stringWithUTF8String:title];
+        if (!gTrayTarget) {
+            gTrayTarget = [[PostItTrayTarget alloc] init];
+        }
+
+        // Mini post-it white square icon
+        NSSize iconSize = NSMakeSize(18, 18);
+        NSImage *icon = [NSImage imageWithSize:iconSize flipped:NO drawingHandler:^BOOL(NSRect dstRect) {
+            NSRect rect = NSMakeRect(2.5, 2.5, 13.0, 13.0);
+            NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:rect xRadius:1.5 yRadius:1.5];
+            [[NSColor whiteColor] setFill];
+            [path fill];
+            [[NSColor colorWithWhite:0.2 alpha:0.35] setStroke];
+            [path setLineWidth:1.0];
+            [path stroke];
+            return YES;
+        }];
+        [icon setTemplate:NO];
+        gStatusItem.button.image = icon;
+        gStatusItem.button.title = @"";
 
         NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Post-it"];
 
@@ -341,7 +369,8 @@ void macosSetupTray(const char* title) {
         [itemToggle setTarget:gTrayTarget];
         [menu addItem:itemToggle];
 
-        NSMenuItem *itemMenu = [[NSMenuItem alloc] initWithTitle:@"Configurações" action:@selector(onOpenMenu:) keyEquivalent:@""];
+        NSMenuItem *itemMenu = [[NSMenuItem alloc] initWithTitle:@"Ajustes" action:@selector(onOpenMenu:) keyEquivalent:@"a"];
+        [itemMenu setKeyEquivalentModifierMask:NSEventModifierFlagCommand | NSEventModifierFlagShift];
         [itemMenu setTarget:gTrayTarget];
         [menu addItem:itemMenu];
 

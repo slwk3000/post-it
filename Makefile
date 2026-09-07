@@ -18,6 +18,7 @@ app: build
 	@./scripts/bundle_app.sh
 
 run: app
+	@killall post-it 2>/dev/null || true
 	open $(APP_BUNDLE)
 
 clean:

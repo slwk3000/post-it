@@ -10,8 +10,7 @@
   </style>
 </head>
 <body>
-  <div id="postit-card" class="postit-card paper-{{.Note.PaperType}} pattern-{{.Note.PaperPattern}}"
-       style="{{if .Note.Color}}--custom-color: {{.Note.Color}};{{end}} --custom-sat: {{.Note.Saturation}}%;">
+  <div id="postit-card" class="postit-card paper-{{.Note.PaperType}} pattern-{{.Note.PaperPattern}} pen-{{.Note.PenColor}}">
     
     <!-- Pin / Header Drag Area -->
     <div id="drag-header" class="postit-header">

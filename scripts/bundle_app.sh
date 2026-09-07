@@ -41,4 +41,8 @@ cat << PLIST > "${APP_BUNDLE}/Contents/Info.plist"
 </plist>
 PLIST
 
-echo "App bundle successfully created at ${APP_BUNDLE}"
+codesign --force --deep --sign - "${APP_BUNDLE}" 2>/dev/null || true
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -R "${APP_BUNDLE}" 2>/dev/null || true
+touch "${APP_BUNDLE}"
+
+echo "App bundle successfully created and signed at ${APP_BUNDLE}"

@@ -120,15 +120,46 @@ func (a *App) Start() error {
 	return nil
 }
 
-func (a *App) CreateNewNote() {
+func (a *App) CreateNewNote(sourceID ...string) {
 	a.mu.Lock()
 	noteID := generateID()
-	// Offset new note slightly based on existing count
-	offset := float64((len(a.notes) % 10) * 30)
 	note := model.NewNote(noteID, a.settings)
-	note.X = 150 + offset
-	note.Y = 150 + offset
 
+	// Determine reference note (explicit source ID, or activeNoteID, or most recently updated)
+	refID := ""
+	if len(sourceID) > 0 && sourceID[0] != "" {
+		refID = sourceID[0]
+	}
+	if refID == "" {
+		refID = a.activeNoteID
+	}
+	var refNote *model.Note
+	if refID != "" {
+		refNote = a.notes[refID]
+	}
+	if refNote == nil {
+		var latestTime time.Time
+		for _, n := range a.notes {
+			if refNote == nil || n.UpdatedAt.After(latestTime) {
+				refNote = n
+				latestTime = n.UpdatedAt
+			}
+		}
+	}
+
+	if refNote != nil {
+		note.X = refNote.X + 35
+		note.Y = refNote.Y + 35
+		note.PaperType = refNote.PaperType
+		note.PaperPattern = refNote.PaperPattern
+		note.PenColor = refNote.PenColor
+		note.Alignment = refNote.Alignment
+	} else {
+		note.X = 180
+		note.Y = 180
+	}
+
+	a.activeNoteID = noteID
 	a.notes[noteID] = note
 	allNotes := a.getAllNotesSliceLocked()
 	a.mu.Unlock()
@@ -339,7 +370,21 @@ func (a *App) handleWebAction(panelID string, action string, payload json.RawMes
 		a.wm.CloseMenu()
 
 	case "new_note":
-		a.CreateNewNote()
+		var p struct {
+			ID string `json:"id"`
+		}
+		json.Unmarshal(payload, &p)
+		a.CreateNewNote(p.ID)
+
+	case "panel_hover":
+		var p struct {
+			ID string `json:"id"`
+		}
+		if err := json.Unmarshal(payload, &p); err == nil && p.ID != "" && p.ID != "menu" {
+			a.mu.Lock()
+			a.activeNoteID = p.ID
+			a.mu.Unlock()
+		}
 
 	case "toggle_all":
 		a.ToggleAllNotes()

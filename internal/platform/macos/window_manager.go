@@ -1,6 +1,7 @@
 package macos
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"unsafe"
@@ -71,12 +72,12 @@ func (wm *WindowManager) UpdateNoteWindow(note *model.Note) error {
 		return nil
 	}
 
-	html, err := ui.RenderNoteHTML(note)
+	noteJSON, err := json.Marshal(note)
 	if err != nil {
 		return err
 	}
 
-	UpdatePanelHTML(ptr, html)
+	EvaluateJS(ptr, fmt.Sprintf("if (window.updateNoteConfig) { window.updateNoteConfig(%s); }", string(noteJSON)))
 	return nil
 }
 
@@ -88,6 +89,9 @@ func (wm *WindowManager) ToggleAllNotes() bool {
 	for _, ptr := range wm.notePanels {
 		SetPanelVisible(ptr, wm.notesVisible)
 	}
+	if wm.menuPanel != nil && wm.menuVisible {
+		SetPanelVisible(wm.menuPanel, wm.notesVisible)
+	}
 	return wm.notesVisible
 }
 
@@ -98,6 +102,9 @@ func (wm *WindowManager) SetNotesVisible(visible bool) {
 	wm.notesVisible = visible
 	for _, ptr := range wm.notePanels {
 		SetPanelVisible(ptr, visible)
+	}
+	if wm.menuPanel != nil && wm.menuVisible {
+		SetPanelVisible(wm.menuPanel, visible)
 	}
 }
 
@@ -117,7 +124,7 @@ func (wm *WindowManager) OpenMenu(settings *model.Settings) error {
 			return fmt.Errorf("render menu html: %w", err)
 		}
 		// Center on screen, rectangular post-it size
-		wm.menuPanel = CreatePanel("menu", 200, 150, 540, 440, html, false)
+		wm.menuPanel = CreatePanel("menu", 200, 150, 540, 440, html, true)
 	} else {
 		html, err := ui.RenderMenuHTML(settings)
 		if err == nil {
