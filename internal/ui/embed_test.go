@@ -32,6 +32,8 @@ func TestRenderNoteHTML(t *testing.T) {
 		t.Fatalf("RenderNoteHTML failed: %v", err)
 	}
 
+	_ = os.WriteFile("/tmp/rendered_note_app.html", []byte(html), 0644)
+
 	if !strings.Contains(html, "Test note content for Post-it") {
 		t.Errorf("expected HTML to contain note content")
 	}

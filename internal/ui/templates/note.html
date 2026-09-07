@@ -24,12 +24,11 @@
       </div>
     </div>
 
-    <!-- Note Text Area -->
-    <div class="postit-content">
-      <textarea id="note-text"
-                class="postit-textarea pen-{{.Note.PenColor}} align-{{.Note.Alignment}}"
-                placeholder="Escreva algo aqui..."
-                spellcheck="false">{{.Note.Content}}</textarea>
+    <!-- Note Content Area -->
+    <div class="postit-content" id="postit-content">
+      <div id="note-text"
+           class="postit-textarea pen-{{.Note.PenColor}} align-{{.Note.Alignment}}"
+           spellcheck="false"></div>
     </div>
 
     <!-- Quick Footer -->

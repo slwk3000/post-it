@@ -10,35 +10,415 @@ function sendAction(action, payload = {}) {
   }
 }
 
+function createCheckboxElement(checked, onChange) {
+  const wrap = document.createElement("span");
+  wrap.className = "note-checkbox-wrap";
+  wrap.contentEditable = "false";
+
+  const checkWrap = document.createElement("span");
+  checkWrap.className = "check-wrap";
+
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = !!checked;
+
+  checkWrap.appendChild(input);
+  wrap.appendChild(checkWrap);
+
+  if (window.drawably && window.drawably.drawablyCheckbox) {
+    try {
+      window.drawably.drawablyCheckbox(checkWrap);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  input.addEventListener("change", () => {
+    const line = wrap.closest(".note-line");
+    if (line) {
+      line.dataset.checked = input.checked ? "true" : "false";
+    }
+    if (typeof onChange === "function") {
+      onChange();
+    }
+  });
+
+  return wrap;
+}
+
+function createLineElement(type, text, checked, onChange) {
+  const line = document.createElement("div");
+  line.className = "note-line";
+  line.dataset.type = type;
+
+  if (type === "checkbox") {
+    line.dataset.checked = checked ? "true" : "false";
+    const cb = createCheckboxElement(checked, onChange);
+    line.appendChild(cb);
+  }
+
+  const textSpan = document.createElement("span");
+  textSpan.className = "note-line-text";
+  textSpan.contentEditable = "true";
+  textSpan.spellcheck = false;
+  textSpan.textContent = text || "";
+  line.appendChild(textSpan);
+
+  return line;
+}
+
+function setCaretToEnd(el) {
+  if (!el) return;
+  el.focus();
+  const range = document.createRange();
+  const sel = window.getSelection();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function setCaretToStart(el) {
+  if (!el) return;
+  el.focus();
+  const range = document.createRange();
+  const sel = window.getSelection();
+  range.selectNodeContents(el);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function getCaretOffset(element) {
+  let caretOffset = 0;
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    const range = sel.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(element);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    caretOffset = preCaretRange.toString().length;
+  }
+  return caretOffset;
+}
+
+function serializeEditor(editor) {
+  const lines = [];
+  editor.querySelectorAll(".note-line").forEach(line => {
+    const isCheckbox = line.dataset.type === "checkbox";
+    const textSpan = line.querySelector(".note-line-text");
+    const text = textSpan ? textSpan.textContent : "";
+    if (isCheckbox) {
+      const checked = line.dataset.checked === "true";
+      lines.push("- [" + (checked ? "x" : " ") + "] " + text);
+    } else {
+      lines.push(text);
+    }
+  });
+  return lines.join("\n");
+}
+
+function renderEditor(editor, rawText, onChange) {
+  editor.innerHTML = "";
+  const lines = (rawText || "").split("\n");
+  if (lines.length === 0 || (lines.length === 1 && lines[0] === "")) {
+    editor.appendChild(createLineElement("text", "", false, onChange));
+    return;
+  }
+  for (const rawLine of lines) {
+    const cbUnchecked = rawLine.match(/^-\s*\[\s*\]\s*(.*)$/);
+    const cbChecked = rawLine.match(/^-\s*\[[xX]\]\s*(.*)$/);
+    if (cbChecked) {
+      editor.appendChild(createLineElement("checkbox", cbChecked[1], true, onChange));
+    } else if (cbUnchecked) {
+      editor.appendChild(createLineElement("checkbox", cbUnchecked[1], false, onChange));
+    } else {
+      editor.appendChild(createLineElement("text", rawLine, false, onChange));
+    }
+  }
+}
+
 function initNote(noteData) {
   currentNote = noteData;
   applyNoteConfig(noteData);
 
-  const textarea = document.getElementById("note-text");
+  const editor = document.getElementById("note-text");
+  const contentArea = document.getElementById("postit-content");
+
   const flushSave = () => {
     clearTimeout(saveTimeout);
-    if (currentNote && textarea) {
+    if (currentNote && editor) {
       sendAction("save_content", {
         id: currentNote.id,
-        content: textarea.value
+        content: serializeEditor(editor)
       });
     }
   };
 
-  if (textarea) {
-    textarea.value = noteData.content || "";
-    textarea.addEventListener("input", () => {
-      clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(flushSave, 80);
+  const scheduleSave = () => {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(flushSave, 80);
+  };
+
+  if (editor) {
+    renderEditor(editor, noteData.content || "", scheduleSave);
+
+    // Cocoa bridge compatibility properties
+    Object.defineProperty(editor, "value", {
+      get() { return serializeEditor(editor); },
+      set(val) { renderEditor(editor, val, scheduleSave); },
+      configurable: true
     });
-    textarea.addEventListener("blur", flushSave);
+
+    editor.setSelectionRange = function() {
+      const last = editor.lastElementChild;
+      if (last) {
+        const span = last.querySelector(".note-line-text");
+        if (span) setCaretToEnd(span);
+      }
+    };
+
+    editor.addEventListener("input", scheduleSave);
+    editor.addEventListener("blur", flushSave);
     window.addEventListener("beforeunload", flushSave);
     window.addEventListener("pagehide", flushSave);
 
+    // Keyboard navigation and shortcuts inside note
+    editor.addEventListener("keydown", (e) => {
+      // Cmd + Q -> Quit
+      if (e.metaKey && e.key.toLowerCase() === "q") {
+        e.preventDefault();
+        flushSave();
+        sendAction("quit_app", {});
+        return;
+      }
+
+      // Cmd + Shift shortcuts
+      if (e.metaKey && e.shiftKey) {
+        const key = e.key.toLowerCase();
+        if (key === "a") {
+          e.preventDefault();
+          sendAction("toggle_menu", { id: currentNote.id });
+          return;
+        } else if (key === "u") {
+          e.preventDefault();
+          sendAction("next_note", { id: currentNote.id });
+          return;
+        } else if (key === "r") {
+          e.preventDefault();
+          sendAction("prev_note", { id: currentNote.id });
+          return;
+        } else if (key === "d" || key === "x") {
+          e.preventDefault();
+          sendAction("delete_note", { id: currentNote.id });
+          return;
+        } else if (key === "n") {
+          e.preventDefault();
+          sendAction("new_note", { id: currentNote.id });
+          return;
+        } else if (key === "p") {
+          e.preventDefault();
+          sendAction("toggle_all", {});
+          return;
+        }
+      }
+
+      const textSpan = e.target.closest(".note-line-text");
+      if (!textSpan) return;
+      const line = textSpan.closest(".note-line");
+      if (!line) return;
+
+      // 1. Shift + Enter: Toggle checkbox on current line
+      if (e.key === "Enter" && e.shiftKey) {
+        e.preventDefault();
+        if (line.dataset.type === "checkbox") {
+          const input = line.querySelector("input[type='checkbox']");
+          if (input) {
+            input.checked = !input.checked;
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+            scheduleSave();
+          }
+        }
+        return;
+      }
+
+      // 2. Tab: if line text starts with '-' (or is just '-'), turn into checkbox!
+      if (e.key === "Tab" && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const text = textSpan.textContent;
+        const matchDash = text.match(/^\s*-\s*(.*)$/);
+        if (matchDash) {
+          e.preventDefault();
+          const remainder = matchDash[1];
+          if (line.dataset.type !== "checkbox") {
+            line.dataset.type = "checkbox";
+            line.dataset.checked = "false";
+            const cb = createCheckboxElement(false, scheduleSave);
+            line.insertBefore(cb, textSpan);
+            textSpan.textContent = remainder;
+            setCaretToStart(textSpan);
+            scheduleSave();
+          }
+          return;
+        }
+      }
+
+      // 3. Enter (without Shift):
+      if (e.key === "Enter" && !e.shiftKey && !e.metaKey) {
+        e.preventDefault();
+        const isCheckbox = line.dataset.type === "checkbox";
+        const text = textSpan.textContent;
+
+        if (isCheckbox && text.trim() === "") {
+          // Empty checkbox line: turn back into normal text line
+          line.dataset.type = "text";
+          delete line.dataset.checked;
+          const cb = line.querySelector(".note-checkbox-wrap");
+          if (cb) cb.remove();
+          textSpan.textContent = "";
+          setCaretToStart(textSpan);
+          scheduleSave();
+          return;
+        }
+
+        // Split text at caret position if cursor is in middle
+        const caretOffset = getCaretOffset(textSpan);
+        const firstPart = text.slice(0, caretOffset);
+        const secondPart = text.slice(caretOffset);
+        textSpan.textContent = firstPart;
+
+        // Create new line
+        const newLineType = isCheckbox ? "checkbox" : "text";
+        const newLine = createLineElement(newLineType, secondPart, false, scheduleSave);
+        line.after(newLine);
+        const newTextSpan = newLine.querySelector(".note-line-text");
+        if (newTextSpan) {
+          setCaretToStart(newTextSpan);
+        }
+        scheduleSave();
+        return;
+      }
+
+      // 4. Backspace at start of line:
+      if (e.key === "Backspace") {
+        const caretOffset = getCaretOffset(textSpan);
+        if (caretOffset === 0) {
+          if (line.dataset.type === "checkbox") {
+            e.preventDefault();
+            // Remove checkbox, convert back to text
+            line.dataset.type = "text";
+            delete line.dataset.checked;
+            const cb = line.querySelector(".note-checkbox-wrap");
+            if (cb) cb.remove();
+            setCaretToStart(textSpan);
+            scheduleSave();
+            return;
+          } else if (line.previousElementSibling) {
+            e.preventDefault();
+            const prevLine = line.previousElementSibling;
+            const prevTextSpan = prevLine.querySelector(".note-line-text");
+            if (prevTextSpan) {
+              const prevLen = prevTextSpan.textContent.length;
+              prevTextSpan.textContent += textSpan.textContent;
+              line.remove();
+              prevTextSpan.focus();
+              const range = document.createRange();
+              const sel = window.getSelection();
+              if (prevTextSpan.firstChild) {
+                range.setStart(prevTextSpan.firstChild, prevLen);
+                range.collapse(true);
+              } else {
+                range.selectNodeContents(prevTextSpan);
+                range.collapse(false);
+              }
+              sel.removeAllRanges();
+              sel.addRange(range);
+              scheduleSave();
+            }
+            return;
+          }
+        }
+      }
+
+      // 5. Arrow Up / Down navigation
+      if (e.key === "ArrowUp") {
+        const prevLine = line.previousElementSibling;
+        if (prevLine) {
+          const prevText = prevLine.querySelector(".note-line-text");
+          if (prevText) {
+            e.preventDefault();
+            setCaretToEnd(prevText);
+          }
+        }
+      } else if (e.key === "ArrowDown") {
+        const nextLine = line.nextElementSibling;
+        if (nextLine) {
+          const nextText = nextLine.querySelector(".note-line-text");
+          if (nextText) {
+            e.preventDefault();
+            setCaretToEnd(nextText);
+          }
+        }
+      }
+    });
+
+    // Paste handler for multiline text / markdown checklists
+    editor.addEventListener("paste", (e) => {
+      const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+      if (!text || !text.includes("\n")) return; // Let single-line paste be default
+      e.preventDefault();
+
+      const textSpan = e.target.closest(".note-line-text");
+      const currentLine = textSpan ? textSpan.closest(".note-line") : editor.lastElementChild;
+      const lines = text.split("\n");
+
+      let lastInsertedLine = currentLine;
+      for (let i = 0; i < lines.length; i++) {
+        const lineStr = lines[i];
+        const cbUnchecked = lineStr.match(/^-\s*\[\s*\]\s*(.*)$/);
+        const cbChecked = lineStr.match(/^-\s*\[[xX]\]\s*(.*)$/);
+        let newLine;
+        if (cbChecked) {
+          newLine = createLineElement("checkbox", cbChecked[1], true, scheduleSave);
+        } else if (cbUnchecked) {
+          newLine = createLineElement("checkbox", cbUnchecked[1], false, scheduleSave);
+        } else {
+          newLine = createLineElement("text", lineStr, false, scheduleSave);
+        }
+
+        if (i === 0 && textSpan && textSpan.textContent === "") {
+          currentLine.replaceWith(newLine);
+          lastInsertedLine = newLine;
+        } else {
+          lastInsertedLine.after(newLine);
+          lastInsertedLine = newLine;
+        }
+      }
+
+      const lastText = lastInsertedLine.querySelector(".note-line-text");
+      if (lastText) setCaretToEnd(lastText);
+      scheduleSave();
+    });
+
+    // Click on empty space in container focuses last line
+    if (contentArea) {
+      contentArea.addEventListener("click", (e) => {
+        if (e.target === contentArea || e.target === editor) {
+          const lastLine = editor.lastElementChild;
+          if (lastLine) {
+            const textSpan = lastLine.querySelector(".note-line-text");
+            if (textSpan) setCaretToEnd(textSpan);
+          }
+        }
+      });
+    }
+
     // Auto-focus immediately so user can start writing without any click
     setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      const lastLine = editor.lastElementChild || editor.firstElementChild;
+      if (lastLine) {
+        const textSpan = lastLine.querySelector(".note-line-text");
+        if (textSpan) setCaretToEnd(textSpan);
+      }
     }, 30);
   }
 
@@ -119,47 +499,21 @@ function initNote(noteData) {
   const onHover = () => {
     if (currentNote && currentNote.id) {
       sendAction("panel_hover", { id: currentNote.id });
-      const textarea = document.getElementById("note-text");
-      if (textarea && document.activeElement !== textarea) {
-        textarea.focus();
+      if (editor) {
+        const focused = document.activeElement && document.activeElement.closest(".note-line-text");
+        if (!focused) {
+          const lastLine = editor.lastElementChild || editor.firstElementChild;
+          if (lastLine) {
+            const textSpan = lastLine.querySelector(".note-line-text");
+            if (textSpan) setCaretToEnd(textSpan);
+          }
+        }
       }
     }
   };
   window.addEventListener("mouseenter", onHover);
   window.addEventListener("focus", onHover);
   document.addEventListener("mousedown", onHover);
-
-  // Keyboard Shortcuts inside note window
-  window.addEventListener("keydown", (e) => {
-    if (e.metaKey && e.key.toLowerCase() === "q") {
-      e.preventDefault();
-      flushSave();
-      sendAction("quit_app", {});
-      return;
-    }
-    if (e.metaKey && e.shiftKey) {
-      const key = e.key.toLowerCase();
-      if (key === "a") {
-        e.preventDefault();
-        sendAction("toggle_menu", { id: currentNote.id });
-      } else if (key === "u") {
-        e.preventDefault();
-        sendAction("next_note", { id: currentNote.id });
-      } else if (key === "r") {
-        e.preventDefault();
-        sendAction("prev_note", { id: currentNote.id });
-      } else if (key === "d" || key === "x") {
-        e.preventDefault();
-        sendAction("delete_note", { id: currentNote.id });
-      } else if (key === "n") {
-        e.preventDefault();
-        sendAction("new_note", { id: currentNote.id });
-      } else if (key === "p") {
-        e.preventDefault();
-        sendAction("toggle_all", {});
-      }
-    }
-  });
 
   // Attach Drawably effects with outline buttons
   if (window.drawably && window.drawably.drawablyButton) {
